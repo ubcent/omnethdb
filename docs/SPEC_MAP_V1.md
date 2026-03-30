@@ -1,6 +1,6 @@
 # OmnethDB Full-Spec V1 Spec Map
 
-This document translates the architecture in [ARCHITECTURE.md](/Users/dmitrybondarchuk/Projects/my/omnethdb/ARCHITECTURE.md) into capability slices for a full-spec `v1`.
+This document translates the architecture in [ARCHITECTURE.md](/Users/dmitrybondarchuk/Projects/my/omnethdb/docs/ARCHITECTURE.md) into capability slices for a full-spec `v1`.
 
 It is intentionally not a task backlog yet. Its purpose is to:
 
