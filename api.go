@@ -15,6 +15,8 @@ type (
 	RuntimeConfig         = runtime.Config
 	RuntimeSpaceSettings  = runtime.SpaceSettings
 	RuntimeEmbedderConfig = runtime.RuntimeEmbedderConfig
+	AuditEntry            = memory.AuditEntry
+	ForgetRecord          = memory.ForgetRecord
 	Memory                = memory.Memory
 	MemoryProfile         = memory.MemoryProfile
 	FindCandidatesRequest = memory.FindCandidatesRequest

@@ -713,6 +713,7 @@ Commands:
   space     print persisted space config
   config    print workspace layout and loaded config
   serve     run the HTTP API server
+  serve-grpc run the gRPC API server
 
 Examples:
   omnethdb init --workspace . --space repo:company/app
@@ -720,5 +721,6 @@ Examples:
   omnethdb recall --workspace . --spaces repo:company/app --query pagination
   omnethdb candidates --workspace . --space repo:company/app --content "pagination"
   omnethdb serve --workspace . --addr :8080
+  omnethdb serve-grpc --workspace . --addr :9090
 `)
 }

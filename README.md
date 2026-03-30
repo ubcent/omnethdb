@@ -263,6 +263,45 @@ curl -X POST http://localhost:8080/v1/memories/<memory-id>/forget \
 
 The current HTTP API is intentionally JSON-first and mirrors the store surface closely. It is a practical external boundary for local tools and services now; a stricter versioned API contract can be layered on top later if needed.
 
+## gRPC API
+
+There is now a native gRPC service boundary as well:
+
+```bash
+go run ./cmd/omnethdb serve-grpc --workspace . --addr :9090
+```
+
+Proto contract:
+
+- [proto/omnethdb/v1/omnethdb.proto](/Users/dmitrybondarchuk/Projects/my/omnethdb/proto/omnethdb/v1/omnethdb.proto)
+
+Generated Go stubs:
+
+- [gen/omnethdb/v1/omnethdb.pb.go](/Users/dmitrybondarchuk/Projects/my/omnethdb/gen/omnethdb/v1/omnethdb.pb.go)
+- [gen/omnethdb/v1/omnethdb_grpc.pb.go](/Users/dmitrybondarchuk/Projects/my/omnethdb/gen/omnethdb/v1/omnethdb_grpc.pb.go)
+
+The gRPC surface mirrors the core store contract:
+
+- `Health`
+- `GetRuntimeConfig`
+- `InitSpace`
+- `GetSpaceConfig`
+- `Remember`
+- `Recall`
+- `GetProfile`
+- `FindCandidates`
+- `Forget`
+- `Revive`
+- `GetLineage`
+- `GetRelated`
+- `GetAuditLog`
+- `MigrateEmbeddings`
+
+Transport adapters live in:
+
+- [internal/grpcapi/server.go](/Users/dmitrybondarchuk/Projects/my/omnethdb/internal/grpcapi/server.go)
+- [internal/httpapi/server.go](/Users/dmitrybondarchuk/Projects/my/omnethdb/internal/httpapi/server.go)
+
 ## Working Standard
 
 We are trying to build something best-in-class, which means:
