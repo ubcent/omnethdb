@@ -64,9 +64,15 @@ type Memory struct {
     // Lifecycle
     IsForgotten        bool
     ForgetAfter        *time.Time // TTL; nil = no expiry
-    HasOrphanedSources bool       // true if any SourceID was forgotten after this memory was created
-                                  // set atomically when Forget(sourceID) is called; never cleared
+    HasOrphanedSources bool       // permanent mark: one or more SourceIDs were forgotten after this memory was created
+                                  // set atomically by Forget(sourceID); never cleared
+                                  // records a historical fact about provenance, not a current validity verdict
                                   // only meaningful for KindDerived; always false for other kinds
+                                  //
+                                  // "never cleared" rationale: forgotten memories are not un-forgotten;
+                                  // if the knowledge represented by the source was replaced (new lineage version),
+                                  // the original SourceID still points to the forgotten record, not the replacement.
+                                  // current validity is a caller judgment via GetRelated(sourceID, Derives, 1)
 
     Relations MemoryRelations
     Metadata  map[string]any
@@ -122,10 +128,12 @@ These two signals measure different things and must not be conflated:
 The stored `Actor` carries only `ID` and `Kind` — enough to look up the current trust at query time and to audit who wrote the memory.
 
 `TrustLevel` resolution at query time:
-- `ActorHuman`: 1.0 (fixed; humans are authoritative by definition)
-- `ActorSystem`: 1.0 (fixed)
+- `ActorHuman`: `SpaceWritePolicy.HumanTrust` (default: 1.0)
+- `ActorSystem`: `SpaceWritePolicy.SystemTrust` (default: 1.0)
 - `ActorAgent` with explicit entry: `SpaceWritePolicy.TrustLevels[actor.ID]`
 - `ActorAgent` with no entry: `SpaceWritePolicy.DefaultAgentTrust` (default: 0.7)
+
+The 1.0 defaults for Human and System reflect a typical deployment model where humans and the orchestrator are the primary authoritative writers. They are policy defaults, not ontological axioms. If a deployment has reason to distrust a specific human or system actor, `TrustLevels[actor.ID]` overrides the default for that actor regardless of `ActorKind`.
 
 The trust model is not a reputation system. Trust levels are static configuration in `SpaceWritePolicy`. They do not update based on observed agent behavior. This is sufficient for v1.
 
@@ -308,7 +316,11 @@ type ProfileRequest struct {
 }
 ```
 
-**Multi-space scoring**: the score of a memory from space `s` is multiplied by `SpaceWeights[s]` before merging. This prevents a noisy run-scoped space (e.g., `repo:company/app:workflow:run-xyz`) from drowning out project-wide static facts. The caller is responsible for assigning appropriate weights — a typical pattern is 1.0 for project spaces and 0.5 for run spaces.
+**Multi-space scoring**: the score of a memory from space `s` is multiplied by `SpaceWeights[s]` before merging. This prevents a noisy run-scoped space (e.g., `repo:company/app:workflow:run-xyz`) from drowning out project-wide static facts.
+
+Callers should not need to hand-tune weights on every request. Each space carries a `DefaultWeight float32` in its `SpaceConfig` (stored in `spaces_config/`; default: 1.0). If a space is not present in `RecallRequest.SpaceWeights`, its `SpaceConfig.DefaultWeight` is used. The per-request `SpaceWeights` map is an override, not the only mechanism.
+
+A run-scoped space created with `DefaultWeight: 0.5` is automatically deprioritized in every query that includes it, without caller discipline. Project-wide spaces keep `DefaultWeight: 1.0`. Callers set per-space defaults once at space creation; they override per-request only for exceptional cases.
 
 **Space deletion**: not supported in v1. Forgetting individual memories is the supported path.
 
@@ -419,7 +431,7 @@ type FindCandidatesRequest struct {
 
 type ReviveInput struct {
     Content    string
-    Kind       MemoryKind // must match the Kind of the lineage root
+    Kind       MemoryKind // must match the Kind of the lineage root; see "Inactive Lineages" for cross-kind evolution
     Actor      Actor
     Confidence float32
     Metadata   map[string]any
@@ -444,6 +456,8 @@ The three retrieval operations have different purposes and different scoring con
 | **Output shape** | Flat `[]ScoredMemory` | `MemoryProfile` (Static + Episodic separated) | Flat `[]ScoredMemory` |
 
 `FindCandidates` uses raw cosine because the caller is evaluating similarity for relation-authoring purposes, not for ranking trustworthiness. A low-confidence memory that is highly similar to the new content IS a candidate for an `Updates` relation — even if it should rank low in agent retrieval.
+
+**`FindCandidates` is a similarity aid, not a relation recommendation engine.** High cosine similarity does not imply a correct or useful relation. Two memories with cosine > 0.95 may be duplicates (`Updates`), complementary context (`Extends`), or simply about the same topic with no structured relationship. The caller inspects the candidates and decides. Do not treat high-scoring results as automatic `Updates` targets — incorrect `Updates` silently retire knowledge that was still valid.
 
 `Recall` and `GetProfile.Episodic` use the same scoring formula. `GetProfile` bundles Static and Episodic into separate layers, applies `ProfileMaxStatic` and `ProfileMaxEpisodic` caps, and is the single call for agent initialization. `Recall` is the general-purpose query for mid-task lookups.
 
@@ -543,7 +557,9 @@ type ReviveInput struct {
 }
 ```
 
-To permanently bury an inactive lineage (keep it invisible forever), do nothing — inactive lineages remain in cold storage, invisible to retrieval, accessible only via `GetLineage`. There is no "delete lineage" operation.
+**Why `Kind` must match the lineage root**: a lineage has a single semantic class established at its first write. Allowing `Revive` to change it would silently bypass `StaticWriters` governance (an Episodic lineage reactivated as Static would skip the promotion audit trail and the `PromotePolicy` check). To evolve knowledge across kinds, use the promotion path: create a new `KindStatic` memory via `Remember` with `StaticWriters` permission, optionally with an `Extends` relation pointing to the old lineage root for historical linkage. That path creates a governed write with explicit actor attribution and an audit record.
+
+To permanently bury an inactive lineage, do nothing — it remains in cold storage, invisible to retrieval, accessible only via `GetLineage`. There is no "delete lineage" operation.
 
 ---
 
@@ -557,11 +573,14 @@ Each space has a `SpaceWritePolicy` configured at construction time. It governs 
 
 ```go
 type SpaceWritePolicy struct {
-    // Default trust level for agents not explicitly listed.
-    // Used to populate Actor.TrustLevel at write time.
+    // Default trust levels by ActorKind.
+    // Override per-actor via TrustLevels.
+    HumanTrust  float32 // default: 1.0
+    SystemTrust float32 // default: 1.0
     DefaultAgentTrust float32 // default: 0.7
 
-    // Per-actor trust overrides.
+    // Per-actor trust overrides. Applied regardless of ActorKind.
+    // Use to lower trust for a specific human or system actor, or raise it for a specific agent.
     TrustLevels map[string]float32 // actorID → trust level
 
     // Who can write KindEpisodic. Default: any actor.
@@ -714,7 +733,7 @@ Cold path (seconds latency acceptable; governance, inspection, debugging):
                    Adjacency list for graph traversal via MemoryInspector.
 
   spaces_config/ → spaceID → SpaceConfig (msgpack)
-                   Stores EmbeddingModelID, dimension, half-life H, write policy.
+                   Stores EmbeddingModelID, dimension, half-life H, DefaultWeight, write policy.
 
   audit_log/     → timestamp+uuid → AuditEntry (msgpack)
                    Append-only record of every write, forget, and migration.
@@ -818,7 +837,7 @@ Backup = copy `memory.db`. No WAL files, no side-car processes.
 | Lineage reactivation | Explicit `Revive` operation | Exception inside Updates semantics | Hidden exceptions inside invariants are technical debt; explicit operation is auditable and has clear error semantics |
 | FindCandidates defaults | Live-only; opt-in for historical | Always include all corpus | Safe by default; callers who need archaeological access are explicit about it |
 | Relations in retrieval | Not traversed | Graph-expanded retrieval | Traversal creates unpredictable result sets; callers use MemoryInspector for explicit graph walks |
-| Multi-space scoring | Explicit SpaceWeights per request | Automatic hierarchy | Caller knows which spaces are authoritative; automatic weighting is implicit coupling |
+| Multi-space scoring | Per-space DefaultWeight in SpaceConfig + per-request override | Automatic hierarchy; all-manual weights | DefaultWeight removes caller discipline requirement for common cases; per-request override handles exceptions |
 | Embedding versioning | ModelID lock + migration API | Best-effort compatibility | Silent vector space corruption is undetectable and catastrophic; hard lock forces explicit migration |
 | Concurrency for Updates | Optimistic lock via `IfLatestID` | Last-write-wins, pessimistic lock | LWW silently corrupts lineage; pessimistic lock is unnecessary overhead for low-contention workload |
 | Versioning model | Immutable lineage + IsLatest pointer | In-place mutation | Full history required for audit and for MemoryInspector |
@@ -829,11 +848,9 @@ Backup = copy `memory.db`. No WAL files, no side-car processes.
 
 ## Open Questions
 
-**Dynamic trust**: TrustLevels are static configuration. Should they update based on observed agent accuracy (e.g., memories from an agent that were frequently Forgotten or Derived from were wrong)? Left for v2; requires empirical evidence that static trust is insufficient.
+**Dynamic trust**: TrustLevels are static configuration in `SpaceWritePolicy`. Should they update based on observed agent accuracy — e.g., an agent whose memories are frequently Forgotten or whose Derived memories are frequently invalidated? Left for v2. Requires empirical evidence that static trust is insufficient and a clear definition of what constitutes a "trust-decreasing event."
 
-**Cross-Derived Derives**: prohibited in v1 (sources must be Episodic or Static). If this proves too restrictive in practice, v2 can relax it with an explicit depth limit (e.g., max one level of Derived-as-source, with required re-validation of the intermediate).
-
-**Dynamic trust**: TrustLevels are static configuration. Should they update based on observed agent accuracy? Left for v2; requires empirical evidence that static trust is insufficient.
+**Cross-Derived Derives**: prohibited in v1 (sources must be Episodic or Static). If this proves too restrictive, v2 can relax it with an explicit depth limit (max one level of Derived-as-source) and a required re-validation step at the intermediate.
 
 ---
 
