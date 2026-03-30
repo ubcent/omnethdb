@@ -24,17 +24,19 @@ func (s *Store) GetProfile(req memory.ProfileRequest) (*memory.MemoryProfile, er
 
 	staticTopK := req.StaticTopK
 	episodicTopK := req.EpisodicTopK
-	if staticTopK == 0 || episodicTopK == 0 {
-		defaultStatic, defaultEpisodic, err := s.resolveProfileLimits(req.SpaceIDs)
-		if err != nil {
-			return nil, err
-		}
-		if staticTopK == 0 {
-			staticTopK = defaultStatic
-		}
-		if episodicTopK == 0 {
-			episodicTopK = defaultEpisodic
-		}
+	defaultStatic, defaultEpisodic, err := s.resolveProfileLimits(req.SpaceIDs)
+	if err != nil {
+		return nil, err
+	}
+	if staticTopK == 0 {
+		staticTopK = defaultStatic
+	} else if staticTopK > defaultStatic {
+		staticTopK = defaultStatic
+	}
+	if episodicTopK == 0 {
+		episodicTopK = defaultEpisodic
+	} else if episodicTopK > defaultEpisodic {
+		episodicTopK = defaultEpisodic
 	}
 
 	staticResults, err := s.collectScoredMemories(

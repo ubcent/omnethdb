@@ -5,7 +5,6 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
-	"fmt"
 	"omnethdb/internal/memory"
 	"omnethdb/internal/policy"
 	"strings"
@@ -382,41 +381,28 @@ func loadMemoryForDerived(tx *bbolt.Tx, id string) (*memory.Memory, error) {
 
 func saveRelations(tx *bbolt.Tx, mem *memory.Memory) error {
 	for _, toID := range mem.Relations.Updates {
-		if err := putRelation(tx, mem.ID, "updates", toID); err != nil {
+		if err := putRelation(tx, mem.ID, memory.RelationUpdates, toID); err != nil {
 			return err
 		}
 	}
 	for _, toID := range mem.Relations.Extends {
-		if err := putRelation(tx, mem.ID, "extends", toID); err != nil {
+		if err := putRelation(tx, mem.ID, memory.RelationExtends, toID); err != nil {
 			return err
 		}
 	}
 	for _, toID := range mem.Relations.Derives {
-		if err := putRelation(tx, mem.ID, "derives", toID); err != nil {
+		if err := putRelation(tx, mem.ID, memory.RelationDerives, toID); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func putRelation(tx *bbolt.Tx, fromID, relationType, toID string) error {
-	key := []byte(fmt.Sprintf("%s:%s", fromID, relationType))
-
-	b := tx.Bucket(bucketRelations)
-	raw := b.Get(key)
-	var ids []string
-	if raw != nil {
-		if err := json.Unmarshal(raw, &ids); err != nil {
-			return err
-		}
-	}
-	ids = append(ids, toID)
-
-	encoded, err := json.Marshal(ids)
-	if err != nil {
+func putRelation(tx *bbolt.Tx, fromID string, relationType memory.RelationType, toID string) error {
+	if err := appendRelationIDs(tx.Bucket(bucketRelations), relationBucketKey(fromID, relationType), toID); err != nil {
 		return err
 	}
-	return b.Put(key, encoded)
+	return appendRelationIDs(tx.Bucket(bucketRelationRefs), relationReverseBucketKey(toID, relationType), fromID)
 }
 
 func putLatest(tx *bbolt.Tx, rootID string, latestID string) error {
@@ -455,6 +441,38 @@ func putSpaceMemoryIDs(tx *bbolt.Tx, spaceID string, ids []string) error {
 		return err
 	}
 	return tx.Bucket(bucketSpaces).Put([]byte(spaceID), encoded)
+}
+
+func appendRelationIDs(bucket *bbolt.Bucket, key []byte, ids ...string) error {
+	existing, err := loadRelationIDsFromBucket(bucket, key)
+	if err != nil {
+		return err
+	}
+	for _, id := range ids {
+		if id == "" {
+			continue
+		}
+		if !containsSourceID(existing, id) {
+			existing = append(existing, id)
+		}
+	}
+	encoded, err := json.Marshal(existing)
+	if err != nil {
+		return err
+	}
+	return bucket.Put(key, encoded)
+}
+
+func loadRelationIDsFromBucket(bucket *bbolt.Bucket, key []byte) ([]string, error) {
+	raw := bucket.Get(key)
+	if raw == nil {
+		return nil, nil
+	}
+	var ids []string
+	if err := json.Unmarshal(raw, &ids); err != nil {
+		return nil, err
+	}
+	return ids, nil
 }
 
 func appendSpaceMemoryID(ids []string, id string) []string {

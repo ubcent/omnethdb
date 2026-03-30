@@ -63,6 +63,53 @@ func TestGetRelatedTraversesExplicitRelationsIncludingHistoricalNodes(t *testing
 	}
 }
 
+func TestGetRelatedSupportsInboundDerivedTraversalForSourceAudit(t *testing.T) {
+	t.Parallel()
+
+	store := newRememberTestStore(t)
+
+	source1, err := store.Remember(memory.MemoryInput{
+		SpaceID:    "repo:company/app",
+		Content:    "source one",
+		Kind:       memory.KindStatic,
+		Actor:      memory.Actor{ID: "user:alice", Kind: memory.ActorHuman},
+		Confidence: 1.0,
+	})
+	if err != nil {
+		t.Fatalf("source1 Remember returned unexpected error: %v", err)
+	}
+	source2, err := store.Remember(memory.MemoryInput{
+		SpaceID:    "repo:company/app",
+		Content:    "source two",
+		Kind:       memory.KindStatic,
+		Actor:      memory.Actor{ID: "user:alice", Kind: memory.ActorHuman},
+		Confidence: 1.0,
+	})
+	if err != nil {
+		t.Fatalf("source2 Remember returned unexpected error: %v", err)
+	}
+	derived, err := store.Remember(memory.MemoryInput{
+		SpaceID:    "repo:company/app",
+		Content:    "derived synthesis",
+		Kind:       memory.KindDerived,
+		Actor:      memory.Actor{ID: "agent:analyst-1", Kind: memory.ActorAgent},
+		Confidence: 0.9,
+		SourceIDs:  []string{source1.ID, source2.ID},
+		Rationale:  "joint inference",
+	})
+	if err != nil {
+		t.Fatalf("derived Remember returned unexpected error: %v", err)
+	}
+
+	related, err := store.GetRelated(source1.ID, memory.RelationDerives, 1)
+	if err != nil {
+		t.Fatalf("GetRelated returned unexpected error: %v", err)
+	}
+	if len(related) != 1 || related[0].ID != derived.ID {
+		t.Fatalf("expected source audit traversal to surface derived memory, got %#v", related)
+	}
+}
+
 func TestGetAuditLogReturnsSpaceScopedChronologicalHistory(t *testing.T) {
 	t.Parallel()
 

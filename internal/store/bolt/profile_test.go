@@ -198,3 +198,57 @@ func TestGetProfileUsesIndependentLayerLimits(t *testing.T) {
 		t.Fatalf("expected episodic layer limit 1, got %#v", profile.Episodic)
 	}
 }
+
+func TestGetProfileCapsExplicitLayerLimitsByPolicy(t *testing.T) {
+	t.Parallel()
+
+	store := newRememberTestStoreWithEmbedderAndPolicy(t, "repo:company/app", memory.SpaceWritePolicy{
+		HumanTrust:        1.0,
+		SystemTrust:       1.0,
+		DefaultAgentTrust: 0.7,
+		EpisodicWriters:   memory.WritersPolicy{AllowHuman: true, AllowSystem: true, AllowAllAgents: true},
+		StaticWriters:     memory.WritersPolicy{AllowHuman: true, AllowAllAgents: true},
+		DerivedWriters:    memory.WritersPolicy{AllowHuman: true, AllowAllAgents: true},
+		PromotePolicy:     memory.WritersPolicy{AllowHuman: true},
+		MaxStaticMemories: 500, MaxEpisodicMemories: 10000, ProfileMaxStatic: 2, ProfileMaxEpisodic: 1,
+	}, testEmbedder{modelID: "test/profile-caps", dimensions: 8})
+
+	for i := 0; i < 3; i++ {
+		if _, err := store.Remember(memory.MemoryInput{
+			SpaceID:    "repo:company/app",
+			Content:    fmt.Sprintf("policy static %d", i),
+			Kind:       memory.KindStatic,
+			Actor:      memory.Actor{ID: "user:alice", Kind: memory.ActorHuman},
+			Confidence: 1.0,
+		}); err != nil {
+			t.Fatalf("static Remember returned unexpected error: %v", err)
+		}
+	}
+	for i := 0; i < 2; i++ {
+		if _, err := store.Remember(memory.MemoryInput{
+			SpaceID:    "repo:company/app",
+			Content:    fmt.Sprintf("policy episodic %d", i),
+			Kind:       memory.KindEpisodic,
+			Actor:      memory.Actor{ID: "agent:scout-1", Kind: memory.ActorAgent},
+			Confidence: 1.0,
+		}); err != nil {
+			t.Fatalf("episodic Remember returned unexpected error: %v", err)
+		}
+	}
+
+	profile, err := store.GetProfile(memory.ProfileRequest{
+		SpaceIDs:     []string{"repo:company/app"},
+		Query:        "query",
+		StaticTopK:   10,
+		EpisodicTopK: 10,
+	})
+	if err != nil {
+		t.Fatalf("GetProfile returned unexpected error: %v", err)
+	}
+	if len(profile.Static) != 2 {
+		t.Fatalf("expected static layer capped by policy at 2, got %#v", profile.Static)
+	}
+	if len(profile.Episodic) != 1 {
+		t.Fatalf("expected episodic layer capped by policy at 1, got %#v", profile.Episodic)
+	}
+}

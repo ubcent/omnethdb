@@ -87,12 +87,22 @@ func (s *Store) Forget(id string, actor memory.Actor, reason string) error {
 }
 
 func markOrphanedDeriveds(tx *bbolt.Tx, spaceID string, sourceID string) error {
-	for _, id := range loadSpaceMemoryIDs(tx, spaceID) {
+	derivedIDs, err := loadInboundRelationIDs(tx, sourceID, memory.RelationDerives)
+	if err != nil {
+		return err
+	}
+	for _, id := range derivedIDs {
 		mem, err := loadMemory(tx, id)
 		if err != nil {
 			return err
 		}
+		if mem.SpaceID != spaceID {
+			continue
+		}
 		if mem.Kind != memory.KindDerived {
+			continue
+		}
+		if !mem.IsLatest || mem.IsForgotten {
 			continue
 		}
 		if !containsSourceID(mem.SourceIDs, sourceID) {

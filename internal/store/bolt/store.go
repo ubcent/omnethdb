@@ -18,6 +18,7 @@ var (
 	bucketEmbeddings   = []byte("embeddings")
 	bucketMemories     = []byte("memories")
 	bucketRelations    = []byte("relations")
+	bucketRelationRefs = []byte("relation_refs")
 	bucketSpacesConfig = []byte("spaces_config")
 	bucketAuditLog     = []byte("audit_log")
 	bucketForgetLog    = []byte("forget_log")
@@ -171,6 +172,7 @@ func (s *Store) initBuckets() error {
 			bucketEmbeddings,
 			bucketMemories,
 			bucketRelations,
+			bucketRelationRefs,
 			bucketSpacesConfig,
 			bucketAuditLog,
 			bucketForgetLog,

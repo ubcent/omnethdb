@@ -53,6 +53,7 @@ func TestOpenInitializesBuckets(t *testing.T) {
 			bucketEmbeddings,
 			bucketMemories,
 			bucketRelations,
+			bucketRelationRefs,
 			bucketSpacesConfig,
 			bucketAuditLog,
 			bucketForgetLog,
@@ -183,6 +184,7 @@ func TestEnsureSpaceOnlyPersistsSpaceConfigDuringBootstrap(t *testing.T) {
 			bucketEmbeddings,
 			bucketMemories,
 			bucketRelations,
+			bucketRelationRefs,
 			bucketAuditLog,
 			bucketForgetLog,
 		} {

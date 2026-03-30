@@ -2,7 +2,6 @@ package bolt
 
 import (
 	"encoding/json"
-	"fmt"
 	"omnethdb/internal/memory"
 	"time"
 
@@ -77,15 +76,7 @@ func (s *Store) GetAuditLog(spaceID string, since time.Time) ([]memory.AuditEntr
 }
 
 func loadRelatedIDs(tx *bbolt.Tx, fromID string, kind memory.RelationType) ([]string, error) {
-	raw := tx.Bucket(bucketRelations).Get([]byte(fmt.Sprintf("%s:%s", fromID, kind)))
-	if raw == nil {
-		return nil, nil
-	}
-	var ids []string
-	if err := json.Unmarshal(raw, &ids); err != nil {
-		return nil, err
-	}
-	return ids, nil
+	return loadIndexedRelatedIDs(tx, fromID, kind)
 }
 
 func loadMemoryByID(tx *bbolt.Tx, id string) (*memory.Memory, error) {
