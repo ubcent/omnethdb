@@ -14,7 +14,11 @@ Recommended order if you are getting oriented:
 4. [UAT_MAP_V1.md](/Users/dmitrybondarchuk/Projects/my/omnethdb/docs/UAT_MAP_V1.md)
 5. [BACKLOG_V1.md](/Users/dmitrybondarchuk/Projects/my/omnethdb/docs/BACKLOG_V1.md)
 6. [MILESTONE_PLAN_V1.md](/Users/dmitrybondarchuk/Projects/my/omnethdb/docs/MILESTONE_PLAN_V1.md)
-7. sprint plans and milestone ticket directories
+7. [RELEASE_TRACEABILITY_V1.md](/Users/dmitrybondarchuk/Projects/my/omnethdb/docs/RELEASE_TRACEABILITY_V1.md)
+8. [RELEASE_UAT_HARNESS_V1.md](/Users/dmitrybondarchuk/Projects/my/omnethdb/docs/RELEASE_UAT_HARNESS_V1.md)
+9. [RELEASE_EVIDENCE_V1.md](/Users/dmitrybondarchuk/Projects/my/omnethdb/docs/RELEASE_EVIDENCE_V1.md)
+10. [RELEASE_RECOMMENDATION_V1.md](/Users/dmitrybondarchuk/Projects/my/omnethdb/docs/RELEASE_RECOMMENDATION_V1.md)
+11. sprint plans and milestone ticket directories
 
 ## Core Planning Stack
 
@@ -53,6 +57,15 @@ Defines the spec-driven backlog with traceability to spec, capability, and UAT.
 - [MILESTONE_PLAN_V1.md](/Users/dmitrybondarchuk/Projects/my/omnethdb/docs/MILESTONE_PLAN_V1.md)
 Purpose:
 Groups backlog work into delivery waves with milestone goals and exit criteria.
+
+### Release Closure
+
+- [RELEASE_TRACEABILITY_V1.md](/Users/dmitrybondarchuk/Projects/my/omnethdb/docs/RELEASE_TRACEABILITY_V1.md)
+- [RELEASE_UAT_HARNESS_V1.md](/Users/dmitrybondarchuk/Projects/my/omnethdb/docs/RELEASE_UAT_HARNESS_V1.md)
+- [RELEASE_EVIDENCE_V1.md](/Users/dmitrybondarchuk/Projects/my/omnethdb/docs/RELEASE_EVIDENCE_V1.md)
+- [RELEASE_RECOMMENDATION_V1.md](/Users/dmitrybondarchuk/Projects/my/omnethdb/docs/RELEASE_RECOMMENDATION_V1.md)
+Purpose:
+Capture release-blocking traceability, repeatable acceptance execution, recorded evidence, and final ship recommendation.
 
 ## Sprint Plans
 
@@ -108,13 +121,13 @@ If you are doing release validation:
 
 1. start from [UAT_MAP_V1.md](/Users/dmitrybondarchuk/Projects/my/omnethdb/docs/UAT_MAP_V1.md)
 2. review [SPRINT_PLAN_M7.md](/Users/dmitrybondarchuk/Projects/my/omnethdb/docs/SPRINT_PLAN_M7.md)
-3. use [docs/tickets/m7/README.md](/Users/dmitrybondarchuk/Projects/my/omnethdb/docs/tickets/m7/README.md) as the release-closure work queue
+3. use [RELEASE_TRACEABILITY_V1.md](/Users/dmitrybondarchuk/Projects/my/omnethdb/docs/RELEASE_TRACEABILITY_V1.md) to map scope to evidence
+4. run [RELEASE_UAT_HARNESS_V1.md](/Users/dmitrybondarchuk/Projects/my/omnethdb/docs/RELEASE_UAT_HARNESS_V1.md)
+5. record and review outcomes in [RELEASE_EVIDENCE_V1.md](/Users/dmitrybondarchuk/Projects/my/omnethdb/docs/RELEASE_EVIDENCE_V1.md)
+6. use [RELEASE_RECOMMENDATION_V1.md](/Users/dmitrybondarchuk/Projects/my/omnethdb/docs/RELEASE_RECOMMENDATION_V1.md) as the release decision record
 
 ## Current State
 
-The planning and ticketing stack for `v1` is now fully scaffolded from architecture through release closure.
+The planning, implementation, and release-closure stack for `v1` is now complete.
 
-The next practical move is no longer planning expansion. It is execution, starting with:
-
-- [docs/tickets/m1/M1-001.md](/Users/dmitrybondarchuk/Projects/my/omnethdb/docs/tickets/m1/M1-001.md)
-- [docs/tickets/m1/M1-002.md](/Users/dmitrybondarchuk/Projects/my/omnethdb/docs/tickets/m1/M1-002.md)
+The next practical move is release management or post-`v1` follow-up planning, not more scaffolding.

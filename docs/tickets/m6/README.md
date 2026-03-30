@@ -19,3 +19,12 @@ Tickets:
 - [M6-005.md](/Users/dmitrybondarchuk/Projects/my/omnethdb/docs/tickets/m6/M6-005.md)
 
 These tickets form the migration and operator-readiness implementation queue for `v1`.
+
+Current state:
+
+- Milestone 6 is complete.
+- `M6-001` is complete.
+- `M6-002` is complete.
+- `M6-003` is complete.
+- `M6-004` is complete.
+- `M6-005` is complete.

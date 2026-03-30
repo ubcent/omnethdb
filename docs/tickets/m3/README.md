@@ -20,3 +20,14 @@ Tickets:
 - [M3-006.md](/Users/dmitrybondarchuk/Projects/my/omnethdb/docs/tickets/m3/M3-006.md)
 
 These tickets form the advanced lifecycle write-path implementation queue for `v1`.
+
+Current state:
+
+- Milestone 3 is complete.
+- Derived validation and provenance persistence are complete.
+- Derived verification is complete.
+- Forget and inactive-lineage semantics are complete.
+- Repository structure has been upgraded to domain-oriented packages plus a thin root facade.
+- Revive is complete.
+- Orphaned-source lifecycle work is complete.
+- Milestone 3 verification sweep is complete.

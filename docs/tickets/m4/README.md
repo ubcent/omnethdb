@@ -20,3 +20,12 @@ Tickets:
 - [M4-006.md](/Users/dmitrybondarchuk/Projects/my/omnethdb/docs/tickets/m4/M4-006.md)
 
 These tickets form the retrieval and context-assembly implementation queue for `v1`.
+
+Current state:
+
+- Milestone 4 is complete.
+- `M4-001` is complete.
+- `M4-002` is complete.
+- `M4-003` is complete.
+- `M4-004` is complete.
+- Verification is complete.

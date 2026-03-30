@@ -20,3 +20,9 @@ Tickets:
 - [M1-006.md](/Users/dmitrybondarchuk/Projects/my/omnethdb/docs/tickets/m1/M1-006.md)
 
 These tickets form the foundation implementation queue for `v1`.
+
+Current state:
+
+- Milestone 1 is functionally complete.
+- The foundation baseline now includes domain types, validation helpers, a persisted space bootstrap path, embedder locking, a bucket scaffold, and foundational storage tests.
+- Milestone 2 has already begun on top of this baseline.

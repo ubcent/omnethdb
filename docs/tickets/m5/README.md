@@ -20,3 +20,14 @@ Tickets:
 - [M5-006.md](/Users/dmitrybondarchuk/Projects/my/omnethdb/docs/tickets/m5/M5-006.md)
 
 These tickets form the inspectability and concurrency-safety implementation queue for `v1`.
+
+Current state:
+
+- Milestone 5 is in progress.
+- `M5-001` is complete.
+- `M5-002` is complete.
+- `M5-003` is complete.
+- `M5-004` is complete.
+- `M5-005` is complete.
+- `M5-006` is complete.
+- Milestone 5 is complete.

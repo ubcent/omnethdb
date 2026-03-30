@@ -18,3 +18,11 @@ Tickets:
 - [M7-004.md](/Users/dmitrybondarchuk/Projects/my/omnethdb/docs/tickets/m7/M7-004.md)
 
 These tickets form the release-closure and acceptance-signoff queue for `v1`.
+
+Current state:
+
+- Milestone 7 is complete.
+- `M7-001` is complete.
+- `M7-002` is complete.
+- `M7-003` is complete.
+- `M7-004` is complete.

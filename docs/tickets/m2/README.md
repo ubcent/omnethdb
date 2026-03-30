@@ -20,3 +20,10 @@ Tickets:
 - [M2-006.md](/Users/dmitrybondarchuk/Projects/my/omnethdb/docs/tickets/m2/M2-006.md)
 
 These tickets form the core write-path implementation queue for `v1`.
+
+Current state:
+
+- Milestone 2 is functionally complete.
+- The write path now has lineage semantics, relation validation, writer-policy enforcement, promotion gating, trust helpers, and live corpus limit checks.
+- `Remember` covers the full Milestone 2 scope.
+- Verification now covers core invariants, reject cases, and no-partial-state expectations.

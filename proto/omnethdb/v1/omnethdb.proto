@@ -1,0 +1,268 @@
+syntax = "proto3";
+
+package omnethdb.v1;
+
+option go_package = "omnethdb/gen/omnethdb/v1;omnethdbv1";
+
+import "google/protobuf/struct.proto";
+import "google/protobuf/timestamp.proto";
+
+service OmnethDB {
+  rpc Health(HealthRequest) returns (HealthResponse);
+  rpc GetRuntimeConfig(GetRuntimeConfigRequest) returns (GetRuntimeConfigResponse);
+  rpc InitSpace(InitSpaceRequest) returns (SpaceConfig);
+  rpc GetSpaceConfig(GetSpaceConfigRequest) returns (SpaceConfig);
+  rpc Remember(RememberRequest) returns (Memory);
+  rpc Recall(RecallRequest) returns (RecallResponse);
+  rpc GetProfile(GetProfileRequest) returns (MemoryProfile);
+  rpc FindCandidates(FindCandidatesRequest) returns (RecallResponse);
+  rpc Forget(ForgetRequest) returns (StatusResponse);
+  rpc Revive(ReviveRequest) returns (Memory);
+  rpc GetLineage(GetLineageRequest) returns (LineageResponse);
+  rpc GetRelated(GetRelatedRequest) returns (RelatedResponse);
+  rpc GetAuditLog(GetAuditLogRequest) returns (AuditLogResponse);
+  rpc MigrateEmbeddings(MigrateEmbeddingsRequest) returns (SpaceConfig);
+}
+
+enum MemoryKind {
+  MEMORY_KIND_EPISODIC = 0;
+  MEMORY_KIND_STATIC = 1;
+  MEMORY_KIND_DERIVED = 2;
+}
+
+enum ActorKind {
+  ACTOR_KIND_HUMAN = 0;
+  ACTOR_KIND_AGENT = 1;
+  ACTOR_KIND_SYSTEM = 2;
+}
+
+enum RelationType {
+  RELATION_TYPE_UPDATES = 0;
+  RELATION_TYPE_EXTENDS = 1;
+  RELATION_TYPE_DERIVES = 2;
+}
+
+message Actor {
+  string id = 1;
+  ActorKind kind = 2;
+}
+
+message MemoryRelations {
+  repeated string updates = 1;
+  repeated string extends = 2;
+  repeated string derives = 3;
+}
+
+message WritersPolicy {
+  bool allow_human = 1;
+  bool allow_system = 2;
+  bool allow_all_agents = 3;
+  repeated string allowed_agent_ids = 4;
+  float min_trust_level = 5;
+}
+
+message SpaceWritePolicy {
+  float human_trust = 1;
+  float system_trust = 2;
+  float default_agent_trust = 3;
+  map<string, float> trust_levels = 4;
+  WritersPolicy episodic_writers = 5;
+  WritersPolicy static_writers = 6;
+  WritersPolicy derived_writers = 7;
+  WritersPolicy promote_policy = 8;
+  int32 max_static_memories = 9;
+  int32 max_episodic_memories = 10;
+  int32 profile_max_static = 11;
+  int32 profile_max_episodic = 12;
+}
+
+message SpaceConfig {
+  string embedding_model_id = 1;
+  int32 dimension = 2;
+  float default_weight = 3;
+  float half_life_days = 4;
+  SpaceWritePolicy write_policy = 5;
+  bool migrating = 6;
+  string migration_target_model_id = 7;
+  int32 migration_target_dimension = 8;
+  google.protobuf.Timestamp migration_started_at = 9;
+}
+
+message Memory {
+  string id = 1;
+  string space_id = 2;
+  string content = 3;
+  repeated float embedding = 4;
+  MemoryKind kind = 5;
+  Actor actor = 6;
+  float confidence = 7;
+  int32 version = 8;
+  bool is_latest = 9;
+  string parent_id = 10;
+  string root_id = 11;
+  repeated string source_ids = 12;
+  string rationale = 13;
+  bool is_forgotten = 14;
+  google.protobuf.Timestamp forget_after = 15;
+  bool has_orphaned_sources = 16;
+  MemoryRelations relations = 17;
+  google.protobuf.Struct metadata = 18;
+  google.protobuf.Timestamp created_at = 19;
+}
+
+message ScoredMemory {
+  Memory memory = 1;
+  float score = 2;
+}
+
+message MemoryProfile {
+  repeated ScoredMemory static = 1;
+  repeated ScoredMemory episodic = 2;
+}
+
+message AuditEntry {
+  google.protobuf.Timestamp timestamp = 1;
+  string space_id = 2;
+  string operation = 3;
+  Actor actor = 4;
+  repeated string memory_ids = 5;
+  string reason = 6;
+}
+
+message RuntimeEmbedderConfig {
+  string model_id = 1;
+  int32 dimensions = 2;
+}
+
+message RuntimeSpaceSettings {
+  optional float default_weight = 1;
+  optional float half_life_days = 2;
+  optional int32 max_static_memories = 3;
+  optional int32 max_episodic_memories = 4;
+  optional int32 profile_max_static = 5;
+  optional int32 profile_max_episodic = 6;
+  optional float human_trust = 7;
+  optional float system_trust = 8;
+  optional float default_agent_trust = 9;
+  RuntimeEmbedderConfig embedder = 10;
+}
+
+message RuntimeConfig {
+  map<string, RuntimeSpaceSettings> spaces = 1;
+}
+
+message HealthRequest {}
+
+message HealthResponse {
+  string status = 1;
+}
+
+message GetRuntimeConfigRequest {}
+
+message GetRuntimeConfigResponse {
+  RuntimeConfig config = 1;
+}
+
+message InitSpaceRequest {
+  string space_id = 1;
+}
+
+message GetSpaceConfigRequest {
+  string space_id = 1;
+}
+
+message RememberRequest {
+  string space_id = 1;
+  string content = 2;
+  MemoryKind kind = 3;
+  Actor actor = 4;
+  float confidence = 5;
+  google.protobuf.Timestamp forget_after = 6;
+  google.protobuf.Struct metadata = 7;
+  repeated string source_ids = 8;
+  string rationale = 9;
+  string if_latest_id = 10;
+  MemoryRelations relations = 11;
+}
+
+message RecallRequest {
+  repeated string space_ids = 1;
+  map<string, float> space_weights = 2;
+  string query = 3;
+  int32 top_k = 4;
+  repeated MemoryKind kinds = 5;
+  bool exclude_orphaned_derives = 6;
+}
+
+message RecallResponse {
+  repeated ScoredMemory memories = 1;
+}
+
+message GetProfileRequest {
+  repeated string space_ids = 1;
+  map<string, float> space_weights = 2;
+  string query = 3;
+  int32 static_top_k = 4;
+  int32 episodic_top_k = 5;
+  bool exclude_orphaned_derives = 6;
+}
+
+message FindCandidatesRequest {
+  string space_id = 1;
+  string content = 2;
+  int32 top_k = 3;
+  bool include_superseded = 4;
+  bool include_forgotten = 5;
+}
+
+message ForgetRequest {
+  string id = 1;
+  Actor actor = 2;
+  string reason = 3;
+}
+
+message ReviveRequest {
+  string root_id = 1;
+  string content = 2;
+  MemoryKind kind = 3;
+  Actor actor = 4;
+  float confidence = 5;
+  google.protobuf.Struct metadata = 6;
+}
+
+message GetLineageRequest {
+  string root_id = 1;
+}
+
+message LineageResponse {
+  repeated Memory memories = 1;
+}
+
+message GetRelatedRequest {
+  string memory_id = 1;
+  RelationType relation = 2;
+  int32 depth = 3;
+}
+
+message RelatedResponse {
+  repeated Memory memories = 1;
+}
+
+message GetAuditLogRequest {
+  string space_id = 1;
+  google.protobuf.Timestamp since = 2;
+}
+
+message AuditLogResponse {
+  repeated AuditEntry entries = 1;
+}
+
+message MigrateEmbeddingsRequest {
+  string space_id = 1;
+  string model_id = 2;
+  int32 dimensions = 3;
+}
+
+message StatusResponse {
+  string status = 1;
+}
