@@ -62,8 +62,11 @@ type Memory struct {
     Rationale string   // explanation of the derivation; required; non-empty
 
     // Lifecycle
-    IsForgotten bool
-    ForgetAfter *time.Time // TTL; nil = no expiry
+    IsForgotten        bool
+    ForgetAfter        *time.Time // TTL; nil = no expiry
+    HasOrphanedSources bool       // true if any SourceID was forgotten after this memory was created
+                                  // set atomically when Forget(sourceID) is called; never cleared
+                                  // only meaningful for KindDerived; always false for other kinds
 
     Relations MemoryRelations
     Metadata  map[string]any
@@ -79,9 +82,11 @@ const (
 )
 
 type Actor struct {
-    ID         string    // agent ID, user ID, or "system"
-    Kind       ActorKind // Human | Agent | System
-    TrustLevel float32   // 0.0–1.0; configured in SpaceWritePolicy; not caller-declared
+    ID   string    // agent ID, user ID, or "system"
+    Kind ActorKind // Human | Agent | System
+    // TrustLevel is NOT stored in the memory record.
+    // It is resolved at query time from SpaceWritePolicy.TrustLevels[actor.ID].
+    // See "Confidence vs TrustLevel" for the rationale.
 }
 
 type ActorKind uint8
@@ -101,22 +106,28 @@ type MemoryRelations struct {
 
 ### Confidence vs TrustLevel
 
-These two fields measure different things and must not be conflated:
+These two signals measure different things and must not be conflated:
 
-| Field | Set by | Meaning |
-|---|---|---|
-| `Confidence` | Caller at write time | Epistemic certainty about the fact itself. An agent that directly observed a failure sets 0.9; one that inferred it from noisy output sets 0.4. |
-| `Actor.TrustLevel` | Space write policy | System's trust in this actor's judgment. Populated by OmnethDB from `SpaceWritePolicy.TrustLevels` at write time — the caller does not set it. |
+| Signal | Declared by | Stored in record | Meaning |
+|---|---|---|---|
+| `Confidence` | Caller at write time | Yes | Epistemic certainty about the fact itself. Direct observation → 0.9; noisy inference → 0.4. |
+| `TrustLevel` | Space write policy | **No** | System's trust in this actor's judgment. Resolved at **query time** from `SpaceWritePolicy`. |
 
-Both participate in retrieval scoring (see Retrieval Model). A confident agent with low system trust scores lower than a moderately-confident trusted agent. This is intentional: it separates what the agent believes from how much the system should weight that belief.
+`TrustLevel` is **not persisted** in the memory record. It is resolved at retrieval time from the current `SpaceWritePolicy.TrustLevels[actor.ID]`. This is a deliberate choice:
 
-`TrustLevel` defaults:
-- `ActorHuman`: 1.0
-- `ActorSystem`: 1.0
-- `ActorAgent` with explicit entry in policy: configured value
-- `ActorAgent` with no entry in policy: `SpaceWritePolicy.DefaultAgentTrust` (default: 0.7)
+- If an agent is discovered to be writing low-quality memories, lowering its `TrustLevel` in policy immediately deprioritizes **all** its memories in retrieval — not just future ones.
+- Persisting TrustLevel would create a snapshot of the policy at write time. Old memories from a now-untrusted agent would retain their original high-trust ranking, making policy changes ineffective retroactively.
+- Reproducibility of historical ranking is not a meaningful requirement for agent memory. Agents need the best current context, not a replay of past rankings.
 
-The trust model is not a reputation system. Trust levels do not update dynamically based on history. They are configuration. This is sufficient for v1.
+The stored `Actor` carries only `ID` and `Kind` — enough to look up the current trust at query time and to audit who wrote the memory.
+
+`TrustLevel` resolution at query time:
+- `ActorHuman`: 1.0 (fixed; humans are authoritative by definition)
+- `ActorSystem`: 1.0 (fixed)
+- `ActorAgent` with explicit entry: `SpaceWritePolicy.TrustLevels[actor.ID]`
+- `ActorAgent` with no entry: `SpaceWritePolicy.DefaultAgentTrust` (default: 0.7)
+
+The trust model is not a reputation system. Trust levels are static configuration in `SpaceWritePolicy`. They do not update based on observed agent behavior. This is sufficient for v1.
 
 ---
 
@@ -131,7 +142,7 @@ The trust model is not a reputation system. Trust levels do not update dynamical
 **Invariants**:
 - A memory can be the target of at most one Updates relation. Forked versioning is not supported.
 - A memory cannot Update itself or any of its ancestors (no cycles).
-- A memory cannot Update a `IsForgotten` memory. Create a new root instead.
+- A memory cannot Update a `IsForgotten` memory. Use `Revive` to reactivate an inactive lineage (see Inactive Lineages).
 - `Updates` targets must be in the same space as the source.
 - `KindDerived` memories may be Updated by another `KindDerived` memory. The replacement must provide a fresh `SourceIDs` set and a `Rationale` explaining the revision. It does not inherit the previous memory's sources.
 
@@ -182,7 +193,11 @@ v1: "deploy takes ~5 min"                IsLatest=false, RootID=nil
 
 A Derived memory that is simply invalidated (not replaced by a better synthesis) is retired via `Forget`, not Updates.
 
-**On retrieval**: Derives relations are NOT traversed during Recall or GetProfile. See Retrieval Semantics.
+**Orphaned sources**: if a source memory is forgotten after a Derived memory is created, `Forget(sourceID)` sets `HasOrphanedSources=true` on all live Derived memories that reference it — atomically, in the same transaction. The Derived memory remains in the live corpus. It is returned by `Recall` and `GetProfile` with `HasOrphanedSources=true` visible in the record. Callers that want to suppress these set `ExcludeOrphanedDerives=true` in the request. `GetRelated(sourceID, Derives, 1)` surfaces the affected Derived memories for audit.
+
+The forgetting of a source does not automatically invalidate the synthesis. A pattern derived from three past incidents does not become false because one incident record was cleaned up. The `HasOrphanedSources` flag surfaces the condition; the agent or operator decides whether to revalidate or retire the Derived memory.
+
+**On retrieval**: Derives relations are NOT traversed during Recall or GetProfile. See API Contracts at a Glance.
 
 **Example**:
 ```go
@@ -236,17 +251,19 @@ Remember(ctx, MemoryInput{
 type MemoryProfile struct {
     // KindStatic + KindDerived memories, IsLatest=true, not forgotten.
     // Ordered by score(m, query) descending.
-    // Bounded by MaxStaticMemories in space config.
-    // If the static corpus is well-governed, this fits a context window.
-    // If it does not, that is a governance failure — reduce MaxStaticMemories or curate.
+    // Capped at ProfileRequest.StaticTopK (default: SpaceWritePolicy.ProfileMaxStatic).
+    // This is a context-assembly limit, not a corpus limit. The corpus may contain more.
     Static []ScoredMemory
 
-    // Top-EpisodicTopK KindEpisodic by score, IsLatest=true, not forgotten, not expired.
+    // KindEpisodic memories by score, IsLatest=true, not forgotten, not expired.
+    // Capped at ProfileRequest.EpisodicTopK (default: SpaceWritePolicy.ProfileMaxEpisodic).
     Episodic []ScoredMemory
 }
 ```
 
-`Static` is returned ordered by score against the query — not as a flat dump. This ensures the most relevant static facts appear first when the caller truncates to fit a context window.
+`Static` is ordered by score — not a flat dump. The most relevant static facts appear first. When the caller truncates to fit a context window, the least relevant facts are dropped, not arbitrary ones.
+
+**Corpus limit vs profile limit**: `MaxStaticMemories` (corpus) and `ProfileMaxStatic` (profile) are independent. The corpus can hold 500 static memories; GetProfile returns the top 50 by relevance. Hitting `ErrCorpusLimit` means you have too many memories stored — a governance problem. Hitting `ProfileMaxStatic` means you are selecting from a well-governed corpus — normal operation.
 
 ---
 
@@ -270,14 +287,24 @@ type RecallRequest struct {
     SpaceWeights map[string]float32 // spaceID → weight multiplier; default 1.0 if absent
     Query        string
     TopK         int
-    Kinds        []MemoryKind       // nil = all kinds
+    Kinds        []MemoryKind // nil = all kinds
+
+    // Exclude KindDerived memories whose sources have been partially forgotten.
+    // Default: false — they are returned with HasOrphanedSources=true.
+    ExcludeOrphanedDerives bool
 }
 
 type ProfileRequest struct {
     SpaceIDs     []string
     SpaceWeights map[string]float32
     Query        string
-    EpisodicTopK int                // default: 10
+    StaticTopK   int // default: SpaceWritePolicy.ProfileMaxStatic; 0 = use default
+    EpisodicTopK int // default: SpaceWritePolicy.ProfileMaxEpisodic; 0 = use default
+
+    // Exclude KindDerived memories whose sources have been partially forgotten.
+    // Default: false — orphaned-source Derived memories are returned with HasOrphanedSources=true.
+    // Set true to suppress them from the profile; use MemoryInspector.GetRelated to audit.
+    ExcludeOrphanedDerives bool
 }
 ```
 
@@ -314,13 +341,23 @@ type MemoryStore interface {
     // Soft-delete a memory. Sets IsForgotten=true, IsLatest=false.
     // If the memory is IsLatest=true, the lineage becomes inactive (no current latest).
     // The previous version in the chain is NOT automatically restored.
+    // If the memory is a SourceID in any live KindDerived memories,
+    // those memories have HasOrphanedSources set to true atomically in the same transaction.
     // Records actor and reason in audit_log.
     Forget(ctx context.Context, id string, actor Actor, reason string) error
 
+    // Reactivate an inactive lineage by creating a new IsLatest=true memory.
+    // Returns ErrLineageActive if the lineage is not inactive.
+    // Returns ErrPolicyViolation if actor lacks write permission for the Kind.
+    // See Inactive Lineages section for full semantics.
+    Revive(ctx context.Context, rootID string, input ReviveInput) (*Memory, error)
+
     // Return top-K memories by raw cosine similarity to content.
-    // Includes non-latest and forgotten memories. No score adjustments.
-    // Used by callers to find relation candidates before writing.
-    FindCandidates(ctx context.Context, spaceID string, content string, topK int) ([]ScoredMemory, error)
+    // Default: live corpus only (IsLatest=true, IsForgotten=false).
+    // Use IncludeSuperseded / IncludeForgotten to access historical data.
+    // No confidence/trust/recency adjustments — raw cosine only.
+    // Purpose: find relation candidates before writing. Not for agent context assembly.
+    FindCandidates(ctx context.Context, req FindCandidatesRequest) ([]ScoredMemory, error)
 }
 
 // Secondary interface — cold path for inspection and debugging.
@@ -365,7 +402,50 @@ type ScoredMemory struct {
     Memory
     Score float32
 }
+
+type FindCandidatesRequest struct {
+    SpaceID string
+    Content string
+    TopK    int
+
+    // Default false. Superseded memories (IsLatest=false) are excluded.
+    // Set true to surface all historical versions — use when authoring Updates relations.
+    IncludeSuperseded bool
+
+    // Default false. Forgotten memories are excluded.
+    // Set true only for explicit archaeology or audit workflows.
+    IncludeForgotten bool
+}
+
+type ReviveInput struct {
+    Content    string
+    Kind       MemoryKind // must match the Kind of the lineage root
+    Actor      Actor
+    Confidence float32
+    Metadata   map[string]any
+}
 ```
+
+---
+
+## API Contracts at a Glance
+
+The three retrieval operations have different purposes and different scoring contracts:
+
+| | `Recall` | `GetProfile` | `FindCandidates` |
+|---|---|---|---|
+| **Purpose** | Direct knowledge query during task execution | Context assembly before agent run | Candidate search for relation authoring |
+| **Corpus** | Live only | Live only | Live by default; opt-in historical |
+| **cosine** | ✓ | ✓ | ✓ (only factor) |
+| **Confidence** | ✓ | ✓ | ✗ |
+| **TrustLevel** | ✓ | ✓ | ✗ |
+| **recency** | ✓ | ✓ episodic, ✗ static | ✗ |
+| **space_weight** | ✓ | ✓ | ✗ |
+| **Output shape** | Flat `[]ScoredMemory` | `MemoryProfile` (Static + Episodic separated) | Flat `[]ScoredMemory` |
+
+`FindCandidates` uses raw cosine because the caller is evaluating similarity for relation-authoring purposes, not for ranking trustworthiness. A low-confidence memory that is highly similar to the new content IS a candidate for an `Updates` relation — even if it should rank low in agent retrieval.
+
+`Recall` and `GetProfile.Episodic` use the same scoring formula. `GetProfile` bundles Static and Episodic into separate layers, applies `ProfileMaxStatic` and `ProfileMaxEpisodic` caps, and is the single call for agent initialization. `Recall` is the general-purpose query for mid-task lookups.
 
 ---
 
@@ -388,7 +468,7 @@ Every candidate in the live corpus is scored:
 ```
 score(m, query) = cosine(embed(query), m.Embedding)
                 × m.Confidence
-                × m.Actor.TrustLevel
+                × trust(m.Actor.ID)           ← resolved from SpaceWritePolicy at query time
                 × recency(m)
                 × space_weight(m.SpaceID)
 ```
@@ -438,21 +518,32 @@ A lineage becomes **inactive** when its `IsLatest=true` memory is forgotten:
 
 **Inspection**: `GetLineage(rootID)` returns all versions including forgotten, allowing audit of why knowledge was removed.
 
-**Reactivation**: the caller has two options:
+**Reactivation**: use `Revive` to reactivate an inactive lineage, or create a fresh root to start unrelated knowledge.
 
-Option A — create a new memory that Updates any version in the lineage:
+`Revive` is an explicit operation — not a special case inside `Updates`. The `Updates` invariant is clean: it never targets a forgotten memory, period.
+
 ```go
-// Reactivates the lineage; new memory becomes IsLatest=true
-Remember(ctx, MemoryInput{
-    Content:   "revised: deploy takes ~8 min",
-    Kind:      KindStatic,
-    Relations: MemoryRelations{Updates: []string{forgottenMemoryID}},
-    ...
-})
+// Revive creates a new IsLatest=true memory as the successor to an inactive lineage.
+// rootID must identify a lineage whose latest is IsForgotten=true (inactive).
+// Returns ErrLineageActive if the lineage has a non-forgotten latest.
+// The new memory's ParentID = the forgotten latest's ID; RootID = rootID.
+// The forgotten memory is NOT un-forgotten; its IsForgotten status is unchanged.
+// Kind, Actor, Confidence must be provided in ReviveInput; they are not inherited.
+// Recorded in audit_log with operation=revive.
+Revive(ctx context.Context, rootID string, input ReviveInput) (*Memory, error)
 ```
-The Updates invariant normally requires the target to not be forgotten. **Exception**: a memory CAN Update a `IsForgotten` memory for the purpose of reactivation, provided the caller passes the forgotten memory's ID explicitly. The target remains forgotten; the new memory starts a fresh `IsLatest=true` in the same lineage with `ParentID` pointing to the forgotten one. This preserves the chain without un-forgetting.
 
-Option B — create a fresh root with no relation to the old lineage. Use this when the old knowledge should remain buried.
+```go
+type ReviveInput struct {
+    Content    string
+    Kind       MemoryKind // must match the Kind of the root memory
+    Actor      Actor
+    Confidence float32
+    Metadata   map[string]any
+}
+```
+
+To permanently bury an inactive lineage (keep it invisible forever), do nothing — inactive lineages remain in cold storage, invisible to retrieval, accessible only via `GetLineage`. There is no "delete lineage" operation.
 
 ---
 
@@ -486,9 +577,19 @@ type SpaceWritePolicy struct {
     // Default: Human only.
     PromotePolicy WritersPolicy
 
-    // Hard corpus limits.
-    MaxStaticMemories  int // default: 100
+    // ── Corpus limits (governance) ─────────────────────────────────────────
+    // Hard caps on how many IsLatest=true memories can exist per Kind in this space.
+    // Remember returns ErrCorpusLimit when a cap is breached.
+    // These govern storage growth. They are not retrieval limits.
+    MaxStaticMemories   int // default: 500;  includes KindDerived
     MaxEpisodicMemories int // default: 10_000
+
+    // ── Profile limits (context assembly) ──────────────────────────────────
+    // Default caps for GetProfile. These bound how much is returned to the agent,
+    // not how much is stored. Callers can override per-request via ProfileRequest.
+    // ErrCorpusLimit is never triggered by these limits.
+    ProfileMaxStatic   int // default: 50  — KindStatic + KindDerived in GetProfile.Static
+    ProfileMaxEpisodic int // default: 10  — KindEpisodic in GetProfile.Episodic
 }
 
 type WritersPolicy struct {
@@ -522,21 +623,27 @@ The original Episodic memory is set `IsLatest=false`. The new Static memory is `
 
 Promotion is a governed write: the caller must have `PromotePolicy` permission. Only actors with permission can elevate episodic observations to permanent facts.
 
-### Corpus limits
+### Corpus limits vs profile limits
 
-`MaxStaticMemories` and `MaxEpisodicMemories` are hard limits per space. On limit breach, `Remember` returns `ErrCorpusLimit`. The caller must `Forget` existing memories before writing new ones.
+**Corpus limits** (`MaxStaticMemories`, `MaxEpisodicMemories`) are hard caps on how many `IsLatest=true` memories can exist per Kind in a space. On breach, `Remember` returns `ErrCorpusLimit`. The caller must `Forget` before writing. These govern storage growth.
 
-These are not garbage collectors. They are pressure valves that surface governance failures immediately. An agent that hits `ErrCorpusLimit` must curate. This is the intended behavior.
+**Profile limits** (`ProfileMaxStatic`, `ProfileMaxEpisodic`) cap how many memories appear in `GetProfile`. They do not trigger `ErrCorpusLimit`. They govern context assembly.
+
+The two limits are independent by design. The corpus can hold 500 static memories while `GetProfile` returns only the top 50 by relevance. Hitting `ErrCorpusLimit` means the corpus has not been curated — a governance failure. Hitting `ProfileMaxStatic` during retrieval is normal operation.
+
+Corpus limits are pressure valves: they surface governance failures immediately rather than letting the corpus silently degrade. An agent that hits `ErrCorpusLimit` must curate. This is intentional.
 
 ### Preventing garbage: summary
 
 | Mechanism | What it prevents |
 |---|---|
-| `ForgetAfter` TTL on Episodic | Time-bounded facts (freeze, incident) accumulating after expiry |
-| `Updates` chain discipline | Multiple contradictory versions of the same fact competing in retrieval |
-| `StaticWriters` policy | Agents promoting every observation to permanent facts |
-| `Confidence × TrustLevel` in scoring | Low-quality writes by untrusted actors ranking alongside trusted ones |
-| `MaxStaticMemories` hard limit | Silent static corpus bloat |
+| `ForgetAfter` TTL on Episodic | Time-bounded facts accumulating after expiry |
+| `Updates` chain discipline | Contradictory versions of the same fact competing in retrieval |
+| `StaticWriters` policy | Agents promoting every observation to a permanent fact |
+| `Confidence × trust(actor)` in scoring | Low-quality writes by untrusted actors ranking alongside trusted ones |
+| `MaxStaticMemories` corpus limit | Silent static corpus bloat (surfaces as `ErrCorpusLimit`) |
+| `ProfileMaxStatic` profile limit | Context window overflow from an ungoverned static layer |
+| `HasOrphanedSources` flag | Silent inclusion of Derived memories with partially invalidated evidence |
 | Audit log | Inability to explain why the corpus contains what it contains |
 
 ---
@@ -691,7 +798,7 @@ Backup = copy `memory.db`. No WAL files, no side-car processes.
 
 **Not responsible for relation semantics.** OmnethDB enforces structural invariants. It does not determine whether two memories are semantically contradictory or complementary. That judgment belongs to the caller. `FindCandidates` gives the caller the nearest neighbors; the caller decides what to do with them.
 
-**Not a reputation system.** `Actor.TrustLevel` is static configuration, not a score that updates based on agent behavior. Dynamic trust is future work contingent on evidence that static trust is insufficient.
+**Not a reputation system.** Trust levels are static configuration in `SpaceWritePolicy`, resolved at query time. They do not update based on observed agent behavior. Dynamic trust is future work contingent on evidence that static trust is insufficient.
 
 ---
 
@@ -704,11 +811,15 @@ Backup = copy `memory.db`. No WAL files, no side-car processes.
 | Relation inference | None — caller-explicit | Automatic inference on write | Automatic inference makes `IsLatest` mutations non-auditable; `FindCandidates` provides search without making the decision |
 | Derived sources | Episodic/Static only, not Derived | Allow Derived-from-Derived | Prevents compounding inference errors; higher-order knowledge must pass through Static promotion (governed write) |
 | Derived evolution | Updates allowed with fresh SourceIDs | Forbid all Updates on Derived | A synthesis can be refined by better evidence; forbidding evolution forces Forget+recreate which loses lineage |
-| Trust model | Static TrustLevel in policy + caller Confidence | Dynamic reputation | Minimal and auditable; dynamic trust requires evidence that static is insufficient |
+| TrustLevel storage | Query-time from policy (not persisted) | Persisted snapshot at write time | Policy changes must retroactively affect old memories; persisted snapshots make policy changes ineffective for existing records |
+| Trust model | Static config in SpaceWritePolicy | Dynamic reputation | Minimal and auditable; dynamic trust requires evidence that static is insufficient |
+| Corpus vs profile limits | Two separate limits (MaxXxx vs ProfileMaxXxx) | Single MaxXxx serving both | Conflating governance (corpus growth) with context assembly (agent window) creates confusing semantics |
+| Derived + forgotten sources | `HasOrphanedSources` flag + caller decides | Auto-invalidate on source forget | Auto-invalidation is destructive; a pattern across past events does not become false because one event record is cleaned up |
+| Lineage reactivation | Explicit `Revive` operation | Exception inside Updates semantics | Hidden exceptions inside invariants are technical debt; explicit operation is auditable and has clear error semantics |
+| FindCandidates defaults | Live-only; opt-in for historical | Always include all corpus | Safe by default; callers who need archaeological access are explicit about it |
 | Relations in retrieval | Not traversed | Graph-expanded retrieval | Traversal creates unpredictable result sets; callers use MemoryInspector for explicit graph walks |
 | Multi-space scoring | Explicit SpaceWeights per request | Automatic hierarchy | Caller knows which spaces are authoritative; automatic weighting is implicit coupling |
 | Embedding versioning | ModelID lock + migration API | Best-effort compatibility | Silent vector space corruption is undetectable and catastrophic; hard lock forces explicit migration |
-| Inactive lineage | No auto-restore | Restore previous on Forget | Auto-restore is action at a distance; caller decides whether to reactivate or bury |
 | Concurrency for Updates | Optimistic lock via `IfLatestID` | Last-write-wins, pessimistic lock | LWW silently corrupts lineage; pessimistic lock is unnecessary overhead for low-contention workload |
 | Versioning model | Immutable lineage + IsLatest pointer | In-place mutation | Full history required for audit and for MemoryInspector |
 | Memory kinds | Three-value enum | `IsStatic bool` | Distinct governance, scoring, and decay rules per kind; extensible |
@@ -720,9 +831,9 @@ Backup = copy `memory.db`. No WAL files, no side-car processes.
 
 **Dynamic trust**: TrustLevels are static configuration. Should they update based on observed agent accuracy (e.g., memories from an agent that were frequently Forgotten or Derived from were wrong)? Left for v2; requires empirical evidence that static trust is insufficient.
 
-**Forget cascade on Derives sources**: forgetting a source memory does not cascade to Derived memories that used it. A Derived memory may now have a SourceIDs entry pointing to a forgotten memory. Whether this should trigger automatic invalidation of the Derived memory is unresolved. Current behavior: Derived memory remains live; `GetLineage` on its sources reveals the forgotten entry.
-
 **Cross-Derived Derives**: prohibited in v1 (sources must be Episodic or Static). If this proves too restrictive in practice, v2 can relax it with an explicit depth limit (e.g., max one level of Derived-as-source, with required re-validation of the intermediate).
+
+**Dynamic trust**: TrustLevels are static configuration. Should they update based on observed agent accuracy? Left for v2; requires empirical evidence that static trust is insufficient.
 
 ---
 
@@ -730,15 +841,17 @@ Backup = copy `memory.db`. No WAL files, no side-car processes.
 
 ```
 v0.1 — Core
-  · Memory model: Kind, Actor (ID/Kind/TrustLevel), Confidence, SourceIDs, Rationale
-  · Remember, Recall, GetProfile, Forget, FindCandidates
+  · Memory model: Kind, Actor (ID/Kind), Confidence, HasOrphanedSources, SourceIDs, Rationale
+  · Remember, Recall, GetProfile, Forget, Revive, FindCandidates
   · Updates invariant + IsLatest exclusivity + IfLatestID optimistic lock
   · Extends and Derives with all structural invariants
-  · Inactive lineage semantics + reactivation via Updates on forgotten memory
+  · Inactive lineage semantics + Revive operation (no exception in Updates)
+  · Forget(sourceID) sets HasOrphanedSources=true on affected Derived memories atomically
   · SpaceWritePolicy: EpisodicWriters, StaticWriters, DerivedWriters, PromotePolicy
-  · TrustLevel populated from policy at write time
-  · Scoring formula: cosine × confidence × trust × recency × space_weight
-  · Corpus limits: MaxStaticMemories, MaxEpisodicMemories
+  · Corpus limits: MaxStaticMemories, MaxEpisodicMemories (ErrCorpusLimit)
+  · Profile limits: ProfileMaxStatic, ProfileMaxEpisodic (context assembly caps)
+  · TrustLevel resolved at query time from SpaceWritePolicy (not persisted)
+  · Scoring formula: cosine × confidence × trust(actor.ID) × recency × space_weight
   · EmbeddingModelID lock per space (ErrEmbeddingModelMismatch)
   · Hot/cold bucket layout in bbolt
 
