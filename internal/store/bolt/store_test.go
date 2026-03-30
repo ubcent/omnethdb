@@ -49,6 +49,7 @@ func TestOpenInitializesBuckets(t *testing.T) {
 	err = store.db.View(func(tx *bbolt.Tx) error {
 		for _, bucket := range [][]byte{
 			bucketSpaces,
+			bucketSpaceStats,
 			bucketLatest,
 			bucketEmbeddings,
 			bucketMemories,
@@ -180,6 +181,7 @@ func TestEnsureSpaceOnlyPersistsSpaceConfigDuringBootstrap(t *testing.T) {
 
 		for _, bucket := range [][]byte{
 			bucketSpaces,
+			bucketSpaceStats,
 			bucketLatest,
 			bucketEmbeddings,
 			bucketMemories,
@@ -214,4 +216,77 @@ func TestGetSpaceConfigReturnsErrSpaceNotFound(t *testing.T) {
 	if !errors.Is(err, ErrSpaceNotFound) {
 		t.Fatalf("expected ErrSpaceNotFound, got %v", err)
 	}
+}
+
+func TestLiveKindCountsTrackRememberForgetAndRevive(t *testing.T) {
+	t.Parallel()
+
+	store := newRememberTestStore(t)
+
+	if _, err := store.Remember(MemoryInput{
+		SpaceID:    "repo:company/app",
+		Content:    "static fact",
+		Kind:       KindStatic,
+		Actor:      Actor{ID: "user:alice", Kind: ActorHuman},
+		Confidence: 1.0,
+	}); err != nil {
+		t.Fatalf("static Remember returned unexpected error: %v", err)
+	}
+	episodicMem, err := store.Remember(MemoryInput{
+		SpaceID:    "repo:company/app",
+		Content:    "episodic fact",
+		Kind:       KindEpisodic,
+		Actor:      Actor{ID: "agent:scout-1", Kind: ActorAgent},
+		Confidence: 1.0,
+	})
+	if err != nil {
+		t.Fatalf("episodic Remember returned unexpected error: %v", err)
+	}
+
+	assertCounts := func(wantStatic int, wantEpisodic int) {
+		t.Helper()
+		err := store.db.View(func(tx *bbolt.Tx) error {
+			counts, err := loadLiveKindCounts(tx, "repo:company/app")
+			if err != nil {
+				return err
+			}
+			if counts[KindStatic] != wantStatic || counts[KindDerived] != 0 || counts[KindEpisodic] != wantEpisodic {
+				t.Fatalf("unexpected live counts: %#v", counts)
+			}
+			return nil
+		})
+		if err != nil {
+			t.Fatalf("count verification returned unexpected error: %v", err)
+		}
+	}
+
+	assertCounts(1, 1)
+
+	if err := store.Forget(episodicMem.ID, Actor{ID: "user:alice", Kind: ActorHuman}, "cleanup"); err != nil {
+		t.Fatalf("Forget returned unexpected error: %v", err)
+	}
+	assertCounts(1, 0)
+
+	revivedEpisodic, err := store.Revive(episodicMem.ID, ReviveInput{
+		Content:    "episodic fact revived",
+		Kind:       KindEpisodic,
+		Actor:      Actor{ID: "agent:scout-1", Kind: ActorAgent},
+		Confidence: 1.0,
+	})
+	if err != nil {
+		t.Fatalf("Revive returned unexpected error: %v", err)
+	}
+	assertCounts(1, 1)
+
+	if _, err := store.Remember(MemoryInput{
+		SpaceID:    "repo:company/app",
+		Content:    "promoted fact",
+		Kind:       KindStatic,
+		Actor:      Actor{ID: "user:alice", Kind: ActorHuman},
+		Confidence: 1.0,
+		Relations:  MemoryRelations{Updates: []string{revivedEpisodic.ID}},
+	}); err != nil {
+		t.Fatalf("promotion update returned unexpected error: %v", err)
+	}
+	assertCounts(2, 0)
 }

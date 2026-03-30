@@ -14,6 +14,7 @@ import (
 
 var (
 	bucketSpaces       = []byte("spaces")
+	bucketSpaceStats   = []byte("space_stats")
 	bucketLatest       = []byte("latest")
 	bucketEmbeddings   = []byte("embeddings")
 	bucketMemories     = []byte("memories")
@@ -168,6 +169,7 @@ func (s *Store) initBuckets() error {
 	return s.db.Update(func(tx *bbolt.Tx) error {
 		for _, name := range [][]byte{
 			bucketSpaces,
+			bucketSpaceStats,
 			bucketLatest,
 			bucketEmbeddings,
 			bucketMemories,

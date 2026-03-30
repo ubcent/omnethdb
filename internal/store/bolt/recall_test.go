@@ -1,10 +1,13 @@
 package bolt
 
 import (
+	"context"
+	"sync"
 	"testing"
 	"time"
 
 	. "omnethdb/internal/memory"
+	. "omnethdb/internal/policy"
 )
 
 func TestRecallReturnsOnlyLiveCurrentKnowledge(t *testing.T) {
@@ -252,5 +255,67 @@ func TestRecallCanExcludeOrphanedDeriveds(t *testing.T) {
 	}
 	if len(excluded) != 0 {
 		t.Fatalf("expected orphaned derived to be excluded on request, got %#v", excluded)
+	}
+}
+
+type countingEmbedder struct {
+	modelID    string
+	dimensions int
+
+	mu    sync.Mutex
+	calls map[string]int
+}
+
+func (e *countingEmbedder) Embed(_ context.Context, text string) ([]float32, error) {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	if e.calls == nil {
+		e.calls = map[string]int{}
+	}
+	e.calls[text]++
+	return make([]float32, e.dimensions), nil
+}
+
+func (e *countingEmbedder) Dimensions() int { return e.dimensions }
+func (e *countingEmbedder) ModelID() string { return e.modelID }
+
+func (e *countingEmbedder) callCount(text string) int {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	return e.calls[text]
+}
+
+func TestRecallEmbedsQueryOncePerModelAcrossSpaces(t *testing.T) {
+	t.Parallel()
+
+	embedder := &countingEmbedder{
+		modelID:    "test/shared-model",
+		dimensions: 8,
+	}
+	store := newRememberTestStoreWithEmbedderAndPolicy(t, "repo:company/app", DefaultSpaceWritePolicy(), embedder)
+	ensureRememberTestSpaceWithEmbedderAndPolicy(t, store, "repo:company/other", DefaultSpaceWritePolicy(), embedder, 1.0, 30)
+
+	for _, spaceID := range []string{"repo:company/app", "repo:company/other"} {
+		if _, err := store.Remember(MemoryInput{
+			SpaceID:    spaceID,
+			Content:    "shared fact " + spaceID,
+			Kind:       KindStatic,
+			Actor:      Actor{ID: "user:alice", Kind: ActorHuman},
+			Confidence: 1.0,
+		}); err != nil {
+			t.Fatalf("Remember returned unexpected error: %v", err)
+		}
+	}
+
+	if _, err := store.Recall(RecallRequest{
+		SpaceIDs: []string{"repo:company/app", "repo:company/other"},
+		Query:    "shared-query",
+		TopK:     10,
+	}); err != nil {
+		t.Fatalf("Recall returned unexpected error: %v", err)
+	}
+
+	if got := embedder.callCount("shared-query"); got != 1 {
+		t.Fatalf("expected shared query to be embedded once for the shared model, got %d calls", got)
 	}
 }

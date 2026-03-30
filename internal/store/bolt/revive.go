@@ -83,7 +83,10 @@ func (s *Store) Revive(rootID string, input memory.ReviveInput) (*memory.Memory,
 		if err := putLatest(tx, rootID, mem.ID); err != nil {
 			return err
 		}
-		if err := putSpaceMemoryIDs(tx, root.SpaceID, appendSpaceMemoryID(loadSpaceMemoryIDs(tx, root.SpaceID), mem.ID)); err != nil {
+		if err := addSpaceMemoryID(tx, root.SpaceID, mem.ID); err != nil {
+			return err
+		}
+		if err := incrementLiveKindCount(tx, root.SpaceID, mem.Kind, 1); err != nil {
 			return err
 		}
 		if err := writeAuditEntry(tx, memory.AuditEntry{

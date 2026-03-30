@@ -80,9 +80,10 @@ func (s *Store) Forget(id string, actor memory.Actor, reason string) error {
 		if err := deleteLatest(tx, rootID); err != nil {
 			return err
 		}
-
-		ids := removeSpaceMemoryID(loadSpaceMemoryIDs(tx, mem.SpaceID), mem.ID)
-		return putSpaceMemoryIDs(tx, mem.SpaceID, ids)
+		if err := removeSpaceMemoryID(tx, mem.SpaceID, mem.ID); err != nil {
+			return err
+		}
+		return incrementLiveKindCount(tx, mem.SpaceID, mem.Kind, -1)
 	})
 }
 
@@ -134,21 +135,6 @@ func loadMemoryForForget(tx *bbolt.Tx, id string) (*memory.Memory, error) {
 
 func deleteLatest(tx *bbolt.Tx, rootID string) error {
 	return tx.Bucket(bucketLatest).Delete([]byte(rootID))
-}
-
-func removeSpaceMemoryID(ids []string, targetID string) []string {
-	if len(ids) == 0 {
-		return nil
-	}
-
-	out := make([]string, 0, len(ids))
-	for _, id := range ids {
-		if id == targetID {
-			continue
-		}
-		out = append(out, id)
-	}
-	return out
 }
 
 func containsSourceID(ids []string, target string) bool {

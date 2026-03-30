@@ -49,22 +49,15 @@ func (s *Store) Recall(req memory.RecallRequest) ([]memory.ScoredMemory, error) 
 func (s *Store) collectScoredMemories(spaceIDs []string, spaceWeights map[string]float32, query string, kinds map[memory.MemoryKind]struct{}, excludeOrphanedDerives bool) ([]memory.ScoredMemory, error) {
 	now := time.Now().UTC()
 	results := make([]memory.ScoredMemory, 0)
+	configs, queryEmbeddings, err := s.prepareRecallInputs(spaceIDs, query)
+	if err != nil {
+		return nil, err
+	}
 
-	err := s.db.View(func(tx *bbolt.Tx) error {
+	err = s.db.View(func(tx *bbolt.Tx) error {
 		for _, spaceID := range spaceIDs {
-			cfg, err := loadSpaceConfig(tx, spaceID)
-			if err != nil {
-				return err
-			}
-
-			embedder, err := s.lookupEmbedder(cfg.EmbeddingModelID)
-			if err != nil {
-				return err
-			}
-			queryEmbedding, err := embedder.Embed(context.Background(), query)
-			if err != nil {
-				return err
-			}
+			cfg := configs[spaceID]
+			queryEmbedding := queryEmbeddings[cfg.EmbeddingModelID]
 
 			for _, id := range loadSpaceMemoryIDs(tx, spaceID) {
 				mem, err := loadMemory(tx, id)
@@ -95,6 +88,40 @@ func (s *Store) collectScoredMemories(spaceIDs []string, spaceWeights map[string
 	})
 
 	return results, nil
+}
+
+func (s *Store) prepareRecallInputs(spaceIDs []string, query string) (map[string]*memory.SpaceConfig, map[string][]float32, error) {
+	configs := make(map[string]*memory.SpaceConfig, len(spaceIDs))
+	if err := s.db.View(func(tx *bbolt.Tx) error {
+		for _, spaceID := range spaceIDs {
+			cfg, err := loadSpaceConfig(tx, spaceID)
+			if err != nil {
+				return err
+			}
+			configs[spaceID] = cfg
+		}
+		return nil
+	}); err != nil {
+		return nil, nil, err
+	}
+
+	queryEmbeddings := make(map[string][]float32, len(configs))
+	for _, cfg := range configs {
+		if _, ok := queryEmbeddings[cfg.EmbeddingModelID]; ok {
+			continue
+		}
+		embedder, err := s.lookupEmbedder(cfg.EmbeddingModelID)
+		if err != nil {
+			return nil, nil, err
+		}
+		queryEmbedding, err := embedder.Embed(context.Background(), query)
+		if err != nil {
+			return nil, nil, err
+		}
+		queryEmbeddings[cfg.EmbeddingModelID] = queryEmbedding
+	}
+
+	return configs, queryEmbeddings, nil
 }
 
 func scoreMemory(mem memory.Memory, queryEmbedding []float32, cfg memory.SpaceConfig, overrides map[string]float32, now time.Time) float32 {

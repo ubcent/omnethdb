@@ -102,7 +102,10 @@ func (s *Store) Remember(input memory.MemoryInput) (*memory.Memory, error) {
 			if err := putLatest(tx, mem.ID, mem.ID); err != nil {
 				return err
 			}
-			if err := putSpaceMemoryIDs(tx, mem.SpaceID, appendSpaceMemoryID(loadSpaceMemoryIDs(tx, mem.SpaceID), mem.ID)); err != nil {
+			if err := addSpaceMemoryID(tx, mem.SpaceID, mem.ID); err != nil {
+				return err
+			}
+			if err := incrementLiveKindCount(tx, mem.SpaceID, mem.Kind, 1); err != nil {
 				return err
 			}
 			if err := saveRelations(tx, mem); err != nil {
@@ -183,11 +186,19 @@ func (s *Store) Remember(input memory.MemoryInput) (*memory.Memory, error) {
 		if err := putLatest(tx, rootID, mem.ID); err != nil {
 			return err
 		}
-
-		spaceIDs := loadSpaceMemoryIDs(tx, mem.SpaceID)
-		spaceIDs = replaceSpaceMemoryID(spaceIDs, target.ID, mem.ID)
-		if err := putSpaceMemoryIDs(tx, mem.SpaceID, spaceIDs); err != nil {
+		if err := removeSpaceMemoryID(tx, mem.SpaceID, target.ID); err != nil {
 			return err
+		}
+		if err := addSpaceMemoryID(tx, mem.SpaceID, mem.ID); err != nil {
+			return err
+		}
+		if target.Kind != mem.Kind {
+			if err := incrementLiveKindCount(tx, mem.SpaceID, target.Kind, -1); err != nil {
+				return err
+			}
+			if err := incrementLiveKindCount(tx, mem.SpaceID, mem.Kind, 1); err != nil {
+				return err
+			}
 		}
 		if err := saveRelations(tx, mem); err != nil {
 			return err
@@ -208,21 +219,7 @@ func (s *Store) Remember(input memory.MemoryInput) (*memory.Memory, error) {
 }
 
 func countLiveKinds(tx *bbolt.Tx, spaceID string) (map[memory.MemoryKind]int, error) {
-	counts := map[memory.MemoryKind]int{
-		memory.KindEpisodic: 0,
-		memory.KindStatic:   0,
-		memory.KindDerived:  0,
-	}
-
-	for _, id := range loadSpaceMemoryIDs(tx, spaceID) {
-		mem, err := loadMemory(tx, id)
-		if err != nil {
-			return nil, err
-		}
-		counts[mem.Kind]++
-	}
-
-	return counts, nil
+	return loadLiveKindCounts(tx, spaceID)
 }
 
 func wouldExceedCorpusLimit(policyConfig memory.SpaceWritePolicy, counts map[memory.MemoryKind]int, newKind memory.MemoryKind, replacedKind memory.MemoryKind) bool {
@@ -422,27 +419,6 @@ func loadSpaceConfig(tx *bbolt.Tx, spaceID string) (*memory.SpaceConfig, error) 
 	return &cfg, nil
 }
 
-func loadSpaceMemoryIDs(tx *bbolt.Tx, spaceID string) []string {
-	raw := tx.Bucket(bucketSpaces).Get([]byte(spaceID))
-	if raw == nil {
-		return nil
-	}
-
-	var ids []string
-	if err := json.Unmarshal(raw, &ids); err != nil {
-		return nil
-	}
-	return ids
-}
-
-func putSpaceMemoryIDs(tx *bbolt.Tx, spaceID string, ids []string) error {
-	encoded, err := json.Marshal(ids)
-	if err != nil {
-		return err
-	}
-	return tx.Bucket(bucketSpaces).Put([]byte(spaceID), encoded)
-}
-
 func appendRelationIDs(bucket *bbolt.Bucket, key []byte, ids ...string) error {
 	existing, err := loadRelationIDsFromBucket(bucket, key)
 	if err != nil {
@@ -473,27 +449,6 @@ func loadRelationIDsFromBucket(bucket *bbolt.Bucket, key []byte) ([]string, erro
 		return nil, err
 	}
 	return ids, nil
-}
-
-func appendSpaceMemoryID(ids []string, id string) []string {
-	return append(ids, id)
-}
-
-func replaceSpaceMemoryID(ids []string, oldID string, newID string) []string {
-	out := make([]string, 0, len(ids))
-	replaced := false
-	for _, id := range ids {
-		if id == oldID {
-			out = append(out, newID)
-			replaced = true
-			continue
-		}
-		out = append(out, id)
-	}
-	if !replaced {
-		out = append(out, newID)
-	}
-	return out
 }
 
 func newMemoryID() string {
