@@ -30,6 +30,8 @@ func NewHandler(store *omnethdb.Store, cfg *omnethdb.RuntimeConfig) http.Handler
 	mux.HandleFunc("/v1/recall", s.handleRecall)
 	mux.HandleFunc("/v1/profile", s.handleProfile)
 	mux.HandleFunc("/v1/candidates", s.handleCandidates)
+	mux.HandleFunc("/v1/memories/list", s.handleListMemories)
+	mux.HandleFunc("/v1/memories/remember-batch", s.handleRememberBatch)
 	mux.HandleFunc("/v1/memories/remember", s.handleRemember)
 	mux.HandleFunc("/v1/memories/", s.handleMemoryAction)
 	mux.HandleFunc("/v1/lineages/", s.handleLineageAction)
@@ -75,6 +77,36 @@ func (s *Server) handleRemember(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, mem)
 }
 
+func (s *Server) handleRememberBatch(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
+	var body struct {
+		Inputs []omnethdb.MemoryInput `json:"inputs"`
+	}
+	if err := decodeJSON(r, &body); err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	spaceIDs := make([]string, 0, len(body.Inputs))
+	seen := make(map[string]struct{}, len(body.Inputs))
+	for _, input := range body.Inputs {
+		if _, ok := seen[input.SpaceID]; ok {
+			continue
+		}
+		seen[input.SpaceID] = struct{}{}
+		spaceIDs = append(spaceIDs, input.SpaceID)
+	}
+	s.ensureEmbeddersForSpaces(spaceIDs)
+	memories, err := s.store.RememberBatch(body.Inputs)
+	if err != nil {
+		writeStoreError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, memories)
+}
+
 func (s *Server) handleRecall(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
@@ -92,6 +124,24 @@ func (s *Server) handleRecall(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, results)
+}
+
+func (s *Server) handleListMemories(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
+	var req omnethdb.ListMemoriesRequest
+	if err := decodeJSON(r, &req); err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	memories, err := s.store.ListMemories(req)
+	if err != nil {
+		writeStoreError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, memories)
 }
 
 func (s *Server) handleProfile(w http.ResponseWriter, r *http.Request) {

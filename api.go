@@ -20,6 +20,7 @@ type (
 	Memory                = memory.Memory
 	MemoryProfile         = memory.MemoryProfile
 	FindCandidatesRequest = memory.FindCandidatesRequest
+	ListMemoriesRequest   = memory.ListMemoriesRequest
 	MemoryInput           = memory.MemoryInput
 	ProfileRequest        = memory.ProfileRequest
 	RecallRequest         = memory.RecallRequest

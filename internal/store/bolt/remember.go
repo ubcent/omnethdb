@@ -1,12 +1,10 @@
 package bolt
 
 import (
-	"context"
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
 	"omnethdb/internal/memory"
-	"omnethdb/internal/policy"
 	"strings"
 	"time"
 
@@ -14,207 +12,23 @@ import (
 )
 
 func (s *Store) Remember(input memory.MemoryInput) (*memory.Memory, error) {
-	if s == nil || s.db == nil {
-		return nil, memory.ErrStoreClosed
-	}
-	if err := memory.ValidateSpaceID(input.SpaceID); err != nil {
-		return nil, err
-	}
-	if err := memory.ValidateContent(input.Content); err != nil {
-		return nil, err
-	}
-	if err := memory.ValidateMemoryKind(input.Kind); err != nil {
-		return nil, err
-	}
-	if err := memory.ValidateActor(input.Actor); err != nil {
-		return nil, err
-	}
-	if err := memory.ValidateConfidence(input.Confidence); err != nil {
-		return nil, err
-	}
-	if err := validateRememberRelations(input.Relations); err != nil {
-		return nil, err
-	}
-
-	mem := &memory.Memory{
-		ID:          newMemoryID(),
-		SpaceID:     input.SpaceID,
-		Content:     input.Content,
-		Kind:        input.Kind,
-		Actor:       input.Actor,
-		Confidence:  input.Confidence,
-		ForgetAfter: input.ForgetAfter,
-		Metadata:    cloneMetadata(input.Metadata),
-		CreatedAt:   time.Now().UTC(),
-		Relations: memory.MemoryRelations{
-			Updates: append([]string(nil), input.Relations.Updates...),
-			Extends: append([]string(nil), input.Relations.Extends...),
-			Derives: append([]string(nil), input.Relations.Derives...),
-		},
-		SourceIDs: append([]string(nil), input.SourceIDs...),
-		Rationale: input.Rationale,
-	}
-
-	err := s.db.Update(func(tx *bbolt.Tx) error {
-		cfg, err := loadSpaceConfig(tx, input.SpaceID)
-		if err != nil {
-			return err
-		}
-		if err := ensureSpaceWritable(cfg); err != nil {
-			return err
-		}
-		embedder, err := s.lookupEmbedder(cfg.EmbeddingModelID)
-		if err != nil {
-			return err
-		}
-		if !policy.CanWriteKind(cfg.WritePolicy, input.Actor, input.Kind) {
-			return memory.ErrPolicyViolation
-		}
-		embedding, err := embedder.Embed(context.Background(), input.Content)
-		if err != nil {
-			return err
-		}
-		mem.Embedding = cloneEmbedding(embedding)
-
-		liveCounts, err := countLiveKinds(tx, input.SpaceID)
-		if err != nil {
-			return err
-		}
-
-		if len(input.Relations.Updates) == 0 {
-			if wouldExceedCorpusLimit(cfg.WritePolicy, liveCounts, input.Kind, memory.KindUnknown) {
-				return memory.ErrCorpusLimit
-			}
-			mem.Version = 1
-			mem.IsLatest = true
-			if err := validateDerivedInput(tx, mem); err != nil {
-				return err
-			}
-			if err := validateExtendsTargets(tx, mem.ID, input.SpaceID, input.Relations.Extends); err != nil {
-				return err
-			}
-			if err := saveMemory(tx, mem); err != nil {
-				return err
-			}
-			if err := saveEmbedding(tx, mem.ID, mem.Embedding); err != nil {
-				return err
-			}
-			if err := putLatest(tx, mem.ID, mem.ID); err != nil {
-				return err
-			}
-			if err := addSpaceMemoryID(tx, mem.SpaceID, mem.ID); err != nil {
-				return err
-			}
-			if err := incrementLiveKindCount(tx, mem.SpaceID, mem.Kind, 1); err != nil {
-				return err
-			}
-			if err := saveRelations(tx, mem); err != nil {
-				return err
-			}
-			return writeAuditEntry(tx, memory.AuditEntry{
-				Timestamp: mem.CreatedAt,
-				SpaceID:   mem.SpaceID,
-				Operation: "remember",
-				Actor:     mem.Actor,
-				MemoryIDs: []string{mem.ID},
-			})
-		}
-
-		targetID := input.Relations.Updates[0]
-		target, err := loadMemory(tx, targetID)
-		if err != nil {
-			return err
-		}
-		if target.SpaceID != input.SpaceID {
-			return memory.ErrUpdateAcrossSpaces
-		}
-		if target.Kind != input.Kind {
-			if !(target.Kind == memory.KindEpisodic && input.Kind == memory.KindStatic) {
-				return memory.ErrUpdateAcrossKinds
-			}
-			if !policy.CanPromote(cfg.WritePolicy, input.Actor) {
-				return memory.ErrPolicyViolation
-			}
-		}
-		if target.Kind == memory.KindEpisodic && input.Kind == memory.KindStatic && !policy.CanPromote(cfg.WritePolicy, input.Actor) {
-			return memory.ErrPolicyViolation
-		}
-		if target.Kind != input.Kind && !(target.Kind == memory.KindEpisodic && input.Kind == memory.KindStatic) {
-			return memory.ErrUpdateAcrossKinds
-		}
-		rootID := target.ID
-		if target.RootID != nil {
-			rootID = *target.RootID
-		}
-		if input.IfLatestID != nil {
-			currentLatest := loadLatest(tx, rootID)
-			if currentLatest != *input.IfLatestID {
-				return memory.ErrConflict
-			}
-		}
-		if target.IsForgotten {
-			return memory.ErrUpdateTargetForgotten
-		}
-		if !target.IsLatest {
-			return memory.ErrUpdateTargetNotLatest
-		}
-		if wouldExceedCorpusLimit(cfg.WritePolicy, liveCounts, input.Kind, target.Kind) {
-			return memory.ErrCorpusLimit
-		}
-		if err := validateDerivedInput(tx, mem); err != nil {
-			return err
-		}
-		if err := validateExtendsTargets(tx, mem.ID, input.SpaceID, input.Relations.Extends); err != nil {
-			return err
-		}
-
-		target.IsLatest = false
-		mem.Version = target.Version + 1
-		mem.IsLatest = true
-		mem.ParentID = &target.ID
-		mem.RootID = &rootID
-
-		if err := saveMemory(tx, target); err != nil {
-			return err
-		}
-		if err := saveMemory(tx, mem); err != nil {
-			return err
-		}
-		if err := saveEmbedding(tx, mem.ID, mem.Embedding); err != nil {
-			return err
-		}
-		if err := putLatest(tx, rootID, mem.ID); err != nil {
-			return err
-		}
-		if err := removeSpaceMemoryID(tx, mem.SpaceID, target.ID); err != nil {
-			return err
-		}
-		if err := addSpaceMemoryID(tx, mem.SpaceID, mem.ID); err != nil {
-			return err
-		}
-		if target.Kind != mem.Kind {
-			if err := incrementLiveKindCount(tx, mem.SpaceID, target.Kind, -1); err != nil {
-				return err
-			}
-			if err := incrementLiveKindCount(tx, mem.SpaceID, mem.Kind, 1); err != nil {
-				return err
-			}
-		}
-		if err := saveRelations(tx, mem); err != nil {
-			return err
-		}
-		return writeAuditEntry(tx, memory.AuditEntry{
-			Timestamp: mem.CreatedAt,
-			SpaceID:   mem.SpaceID,
-			Operation: "remember",
-			Actor:     mem.Actor,
-			MemoryIDs: []string{target.ID, mem.ID},
-		})
-	})
+	prepared, err := s.prepareRememberInputs([]memory.MemoryInput{input})
 	if err != nil {
 		return nil, err
 	}
 
+	var mem *memory.Memory
+	err = s.db.Update(func(tx *bbolt.Tx) error {
+		written, err := s.rememberPreparedInTx(tx, prepared[0])
+		if err != nil {
+			return err
+		}
+		mem = written
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
 	return mem, nil
 }
 

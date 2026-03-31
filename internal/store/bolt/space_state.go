@@ -80,7 +80,7 @@ func countLiveKindsByScan(tx *bbolt.Tx, spaceID string) (map[memory.MemoryKind]i
 }
 
 func loadSpaceMemoryIDs(tx *bbolt.Tx, spaceID string) []string {
-	if migrated, err := loadIndexedSpaceMemoryIDs(tx, spaceID); err == nil && len(migrated) > 0 {
+	if migrated, err := loadIndexedSpaceMemoryIDs(tx, spaceID); err == nil && (len(migrated) > 0 || hasPersistedLiveKindCounts(tx, spaceID)) {
 		return migrated
 	}
 
@@ -94,6 +94,10 @@ func loadSpaceMemoryIDs(tx *bbolt.Tx, spaceID string) []string {
 		return nil
 	}
 	return ids
+}
+
+func hasPersistedLiveKindCounts(tx *bbolt.Tx, spaceID string) bool {
+	return tx.Bucket(bucketSpaceStats).Get([]byte(spaceID)) != nil
 }
 
 func addSpaceMemoryID(tx *bbolt.Tx, spaceID string, memoryID string) error {

@@ -107,6 +107,13 @@ func (s *Store) EnsureSpace(spaceID string, embedder memory.Embedder, init Space
 			if err := b.Put([]byte(spaceID), encoded); err != nil {
 				return err
 			}
+			if err := saveLiveKindCounts(tx, spaceID, map[memory.MemoryKind]int{
+				memory.KindEpisodic: 0,
+				memory.KindStatic:   0,
+				memory.KindDerived:  0,
+			}); err != nil {
+				return err
+			}
 			cfg = persisted
 			return nil
 		}

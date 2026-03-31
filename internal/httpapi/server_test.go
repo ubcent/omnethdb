@@ -185,6 +185,67 @@ func TestHTTPAPIExposesRelatedAndCandidates(t *testing.T) {
 	}
 }
 
+func TestHTTPAPIExposesStructuredListAndBatchRemember(t *testing.T) {
+	t.Parallel()
+
+	path := filepath.Join(t.TempDir(), "memory.db")
+	store, err := omnethdb.Open(path)
+	if err != nil {
+		t.Fatalf("Open returned unexpected error: %v", err)
+	}
+	t.Cleanup(func() { _ = store.Close() })
+
+	cfg := &omnethdb.RuntimeConfig{
+		Spaces: map[string]omnethdb.RuntimeSpaceSettings{
+			"repo:company/app": {
+				Embedder: omnethdb.RuntimeEmbedderConfig{
+					ModelID:    "builtin/hash-embedder-v1",
+					Dimensions: 256,
+				},
+			},
+		},
+	}
+	store.RegisterEmbedder(testEmbedder{modelID: "builtin/hash-embedder-v1", dimensions: 256})
+	server := httptest.NewServer(NewHandler(store, cfg))
+	defer server.Close()
+
+	doJSON(t, http.MethodPost, server.URL+"/v1/spaces/init", map[string]any{
+		"space_id": "repo:company/app",
+	}, http.StatusOK, nil)
+
+	var written []omnethdb.Memory
+	doJSON(t, http.MethodPost, server.URL+"/v1/memories/remember-batch", map[string]any{
+		"inputs": []map[string]any{
+			{
+				"SpaceID":    "repo:company/app",
+				"Content":    "adr one",
+				"Kind":       omnethdb.KindStatic,
+				"Actor":      omnethdb.Actor{ID: "user:alice", Kind: omnethdb.ActorHuman},
+				"Confidence": 1.0,
+			},
+			{
+				"SpaceID":    "repo:company/app",
+				"Content":    "adr two",
+				"Kind":       omnethdb.KindStatic,
+				"Actor":      omnethdb.Actor{ID: "user:alice", Kind: omnethdb.ActorHuman},
+				"Confidence": 1.0,
+			},
+		},
+	}, http.StatusOK, &written)
+	if len(written) != 2 {
+		t.Fatalf("unexpected batch remember response: %#v", written)
+	}
+
+	var listed []omnethdb.Memory
+	doJSON(t, http.MethodPost, server.URL+"/v1/memories/list", map[string]any{
+		"SpaceIDs": []string{"repo:company/app"},
+		"Kinds":    []omnethdb.MemoryKind{omnethdb.KindStatic},
+	}, http.StatusOK, &listed)
+	if len(listed) != 2 {
+		t.Fatalf("unexpected structured list response: %#v", listed)
+	}
+}
+
 func doJSON(t *testing.T, method string, url string, body any, wantStatus int, out any) {
 	t.Helper()
 

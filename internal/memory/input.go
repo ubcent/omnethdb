@@ -36,6 +36,13 @@ type RecallRequest struct {
 	ExcludeOrphanedDerives bool
 }
 
+type ListMemoriesRequest struct {
+	SpaceIDs []string
+	Kinds    []MemoryKind
+
+	ExcludeOrphanedDerives bool
+}
+
 type ScoredMemory struct {
 	Memory
 	Score float32

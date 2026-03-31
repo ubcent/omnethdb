@@ -49,7 +49,6 @@ func TestOpenInitializesBuckets(t *testing.T) {
 	err = store.db.View(func(tx *bbolt.Tx) error {
 		for _, bucket := range [][]byte{
 			bucketSpaces,
-			bucketSpaceStats,
 			bucketLatest,
 			bucketEmbeddings,
 			bucketMemories,
@@ -181,7 +180,6 @@ func TestEnsureSpaceOnlyPersistsSpaceConfigDuringBootstrap(t *testing.T) {
 
 		for _, bucket := range [][]byte{
 			bucketSpaces,
-			bucketSpaceStats,
 			bucketLatest,
 			bucketEmbeddings,
 			bucketMemories,
@@ -193,6 +191,9 @@ func TestEnsureSpaceOnlyPersistsSpaceConfigDuringBootstrap(t *testing.T) {
 			if stats := tx.Bucket(bucket).Stats(); stats.KeyN != 0 {
 				t.Fatalf("expected bucket %q to remain empty after bootstrap, got %d keys", bucket, stats.KeyN)
 			}
+		}
+		if stats := tx.Bucket(bucketSpaceStats).Stats(); stats.KeyN != 1 {
+			t.Fatalf("expected space_stats to contain one zero-count marker after bootstrap, got %d keys", stats.KeyN)
 		}
 
 		return nil
