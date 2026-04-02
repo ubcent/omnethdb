@@ -202,6 +202,39 @@ Runnable example:
 go run ./examples/basic
 ```
 
+## MCP Server
+
+OmnethDB also ships with a local stdio MCP server for agent clients such as Claude Code:
+
+```bash
+go run ./cmd/omnethdb-mcp --workspace .
+```
+
+The current MCP surface is intentionally narrow and maps directly to the existing store contracts:
+
+- `space_init`
+- `memory_remember`
+- `memory_recall`
+- `memory_profile`
+- `memory_lineage`
+- `memory_related`
+- `memory_export_summary`
+
+Example MCP client config:
+
+```json
+{
+  "mcpServers": {
+    "omnethdb": {
+      "command": "go",
+      "args": ["run", "./cmd/omnethdb-mcp", "--workspace", "/absolute/path/to/workspace"]
+    }
+  }
+}
+```
+
+A Claude Code-oriented starter pack lives in [examples/claude-code/README.md](/Users/dmitrybondarchuk/Projects/my/omnethdb/examples/claude-code/README.md), including a sample `CLAUDE.md` memory policy and an MCP config template.
+
 ## HTTP API
 
 You can also run OmnethDB as a local HTTP service:

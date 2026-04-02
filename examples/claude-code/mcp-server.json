@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "omnethdb": {
+      "command": "go",
+      "args": [
+        "run",
+        "./cmd/omnethdb-mcp",
+        "--workspace",
+        "/absolute/path/to/omnethdb-workspace"
+      ]
+    }
+  }
+}

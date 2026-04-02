@@ -4,10 +4,14 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"path/filepath"
+	"strings"
 	"testing"
+	"time"
 
 	omnethdb "omnethdb"
 )
@@ -246,6 +250,207 @@ func TestHTTPAPIExposesStructuredListAndBatchRemember(t *testing.T) {
 	}
 }
 
+func TestHTTPAPIExposesExportFormats(t *testing.T) {
+	t.Parallel()
+
+	path := filepath.Join(t.TempDir(), "memory.db")
+	store, err := omnethdb.Open(path)
+	if err != nil {
+		t.Fatalf("Open returned unexpected error: %v", err)
+	}
+	t.Cleanup(func() { _ = store.Close() })
+
+	cfg := &omnethdb.RuntimeConfig{
+		Spaces: map[string]omnethdb.RuntimeSpaceSettings{
+			"repo:company/app": {
+				Embedder: omnethdb.RuntimeEmbedderConfig{
+					ModelID:    "builtin/hash-embedder-v1",
+					Dimensions: 256,
+				},
+			},
+		},
+	}
+	store.RegisterEmbedder(testEmbedder{modelID: "builtin/hash-embedder-v1", dimensions: 256})
+	server := httptest.NewServer(NewHandler(store, cfg))
+	defer server.Close()
+
+	doJSON(t, http.MethodPost, server.URL+"/v1/spaces/init", map[string]any{
+		"space_id": "repo:company/app",
+	}, http.StatusOK, nil)
+
+	var root omnethdb.Memory
+	doJSON(t, http.MethodPost, server.URL+"/v1/memories/remember", map[string]any{
+		"SpaceID":    "repo:company/app",
+		"Content":    "payments use cursor pagination",
+		"Kind":       omnethdb.KindStatic,
+		"Actor":      omnethdb.Actor{ID: "user:alice", Kind: omnethdb.ActorHuman},
+		"Confidence": 1.0,
+	}, http.StatusOK, &root)
+
+	var updated omnethdb.Memory
+	doJSON(t, http.MethodPost, server.URL+"/v1/memories/remember", map[string]any{
+		"SpaceID":    "repo:company/app",
+		"Content":    "payments use signed cursor pagination",
+		"Kind":       omnethdb.KindStatic,
+		"Actor":      omnethdb.Actor{ID: "user:alice", Kind: omnethdb.ActorHuman},
+		"Confidence": 1.0,
+		"IfLatestID": root.ID,
+		"Relations": map[string]any{
+			"Updates": []string{root.ID},
+		},
+	}, http.StatusOK, &updated)
+
+	var snapshot omnethdb.ExportSnapshot
+	doJSON(t, http.MethodGet, server.URL+"/v1/export?space_id=repo:company/app", nil, http.StatusOK, &snapshot)
+	if snapshot.SpaceID != "repo:company/app" || len(snapshot.LiveMemories) != 1 || snapshot.LiveMemories[0].ID != updated.ID {
+		t.Fatalf("unexpected export snapshot: %#v", snapshot)
+	}
+
+	md := doText(t, http.MethodGet, server.URL+"/v1/export?space_id=repo:company/app&format=summary-md", http.StatusOK)
+	if !strings.Contains(md, "## Live Corpus") || !strings.Contains(md, "Root "+root.ID) {
+		t.Fatalf("unexpected markdown export:\n%s", md)
+	}
+
+	mermaid := doText(t, http.MethodGet, server.URL+"/v1/export?space_id=repo:company/app&format=graph-mermaid", http.StatusOK)
+	if !strings.Contains(mermaid, "graph TD") || !strings.Contains(mermaid, "|updates|") {
+		t.Fatalf("unexpected mermaid export:\n%s", mermaid)
+	}
+}
+
+func TestHTTPAPIExposesInspectorPage(t *testing.T) {
+	t.Parallel()
+
+	path := filepath.Join(t.TempDir(), "memory.db")
+	store, err := omnethdb.Open(path)
+	if err != nil {
+		t.Fatalf("Open returned unexpected error: %v", err)
+	}
+	t.Cleanup(func() { _ = store.Close() })
+
+	server := httptest.NewServer(NewHandler(store, &omnethdb.RuntimeConfig{}))
+	defer server.Close()
+
+	page := doText(t, http.MethodGet, server.URL+"/inspect?space_id=repo:company/app", http.StatusOK)
+	if !strings.Contains(page, "OmnethDB Inspector") || !strings.Contains(page, "/v1/export?space_id=") || !strings.Contains(page, "repo:company/app") || !strings.Contains(page, "Signals") || !strings.Contains(page, "Live View") || !strings.Contains(page, "before_file") || !strings.Contains(page, "after_file") {
+		t.Fatalf("unexpected inspector page:\n%s", page)
+	}
+}
+
+func TestHTTPAPIExposesExportDiff(t *testing.T) {
+	t.Parallel()
+
+	path := filepath.Join(t.TempDir(), "memory.db")
+	store, err := omnethdb.Open(path)
+	if err != nil {
+		t.Fatalf("Open returned unexpected error: %v", err)
+	}
+	t.Cleanup(func() { _ = store.Close() })
+
+	cfg := &omnethdb.RuntimeConfig{
+		Spaces: map[string]omnethdb.RuntimeSpaceSettings{
+			"repo:company/app": {
+				Embedder: omnethdb.RuntimeEmbedderConfig{
+					ModelID:    "builtin/hash-embedder-v1",
+					Dimensions: 256,
+				},
+			},
+		},
+	}
+	store.RegisterEmbedder(testEmbedder{modelID: "builtin/hash-embedder-v1", dimensions: 256})
+	server := httptest.NewServer(NewHandler(store, cfg))
+	defer server.Close()
+
+	doJSON(t, http.MethodPost, server.URL+"/v1/spaces/init", map[string]any{
+		"space_id": "repo:company/app",
+	}, http.StatusOK, nil)
+
+	var root omnethdb.Memory
+	doJSON(t, http.MethodPost, server.URL+"/v1/memories/remember", map[string]any{
+		"SpaceID":    "repo:company/app",
+		"Content":    "payments use cursor pagination",
+		"Kind":       omnethdb.KindStatic,
+		"Actor":      omnethdb.Actor{ID: "user:alice", Kind: omnethdb.ActorHuman},
+		"Confidence": 1.0,
+	}, http.StatusOK, &root)
+	since := time.Now().UTC()
+	time.Sleep(5 * time.Millisecond)
+
+	var updated omnethdb.Memory
+	doJSON(t, http.MethodPost, server.URL+"/v1/memories/remember", map[string]any{
+		"SpaceID":    "repo:company/app",
+		"Content":    "payments use signed cursor pagination",
+		"Kind":       omnethdb.KindStatic,
+		"Actor":      omnethdb.Actor{ID: "user:alice", Kind: omnethdb.ActorHuman},
+		"Confidence": 1.0,
+		"IfLatestID": root.ID,
+		"Relations": map[string]any{
+			"Updates": []string{root.ID},
+		},
+	}, http.StatusOK, &updated)
+
+	var diff omnethdb.ExportDiff
+	doJSON(t, http.MethodGet, server.URL+"/v1/export/diff?space_id=repo:company/app&since="+since.Format(time.RFC3339Nano), nil, http.StatusOK, &diff)
+	if diff.SpaceID != "repo:company/app" {
+		t.Fatalf("unexpected export diff: %#v", diff)
+	}
+	if len(diff.AddedLiveMemories) != 1 || diff.AddedLiveMemories[0].ID != updated.ID {
+		t.Fatalf("unexpected added live memories: %#v", diff.AddedLiveMemories)
+	}
+	if len(diff.RemovedLiveMemories) != 1 || diff.RemovedLiveMemories[0].ID != root.ID {
+		t.Fatalf("unexpected removed live memories: %#v", diff.RemovedLiveMemories)
+	}
+	if len(diff.AddedAuditEntries) == 0 {
+		t.Fatalf("expected diff audit entries, got %#v", diff)
+	}
+}
+
+func TestHTTPAPIExposesExportCompare(t *testing.T) {
+	t.Parallel()
+
+	before := omnethdb.ExportSnapshot{
+		SpaceID:     "repo:company/app",
+		GeneratedAt: time.Date(2026, 3, 31, 10, 0, 0, 0, time.UTC),
+		LiveMemories: []omnethdb.Memory{
+			{ID: "mem-before", SpaceID: "repo:company/app", Content: "old fact", Kind: omnethdb.KindStatic, Version: 1, IsLatest: true},
+		},
+	}
+	after := omnethdb.ExportSnapshot{
+		SpaceID:     "repo:company/app",
+		GeneratedAt: time.Date(2026, 3, 31, 11, 0, 0, 0, time.UTC),
+		LiveMemories: []omnethdb.Memory{
+			{ID: "mem-after", SpaceID: "repo:company/app", Content: "new fact", Kind: omnethdb.KindStatic, Version: 2, IsLatest: true},
+		},
+		AuditEntries: []omnethdb.AuditEntry{
+			{Timestamp: time.Date(2026, 3, 31, 10, 30, 0, 0, time.UTC), SpaceID: "repo:company/app", Operation: "remember", MemoryIDs: []string{"mem-before", "mem-after"}},
+		},
+	}
+
+	dir := t.TempDir()
+	beforePath := filepath.Join(dir, "before.json")
+	afterPath := filepath.Join(dir, "after.json")
+	writeSnapshotFile(t, beforePath, before)
+	writeSnapshotFile(t, afterPath, after)
+
+	path := filepath.Join(t.TempDir(), "memory.db")
+	store, err := omnethdb.Open(path)
+	if err != nil {
+		t.Fatalf("Open returned unexpected error: %v", err)
+	}
+	t.Cleanup(func() { _ = store.Close() })
+
+	server := httptest.NewServer(NewHandler(store, &omnethdb.RuntimeConfig{}))
+	defer server.Close()
+
+	var diff omnethdb.ExportDiff
+	doJSON(t, http.MethodGet, server.URL+"/v1/export/compare?before_file="+beforePath+"&after_file="+afterPath, nil, http.StatusOK, &diff)
+	if len(diff.AddedLiveMemories) != 1 || diff.AddedLiveMemories[0].ID != "mem-after" {
+		t.Fatalf("unexpected compare diff added memories: %#v", diff)
+	}
+	if len(diff.RemovedLiveMemories) != 1 || diff.RemovedLiveMemories[0].ID != "mem-before" {
+		t.Fatalf("unexpected compare diff removed memories: %#v", diff)
+	}
+}
+
 func doJSON(t *testing.T, method string, url string, body any, wantStatus int, out any) {
 	t.Helper()
 
@@ -284,5 +489,42 @@ func doJSON(t *testing.T, method string, url string, body any, wantStatus int, o
 		if err := json.NewDecoder(resp.Body).Decode(out); err != nil {
 			t.Fatalf("Decode returned unexpected error: %v", err)
 		}
+	}
+}
+
+func doText(t *testing.T, method string, url string, wantStatus int) string {
+	t.Helper()
+
+	req, err := http.NewRequest(method, url, nil)
+	if err != nil {
+		t.Fatalf("NewRequest returned unexpected error: %v", err)
+	}
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatalf("Do returned unexpected error: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != wantStatus {
+		raw, _ := io.ReadAll(resp.Body)
+		t.Fatalf("unexpected status %d want %d body=%s", resp.StatusCode, wantStatus, string(raw))
+	}
+
+	raw, err := io.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatalf("ReadAll returned unexpected error: %v", err)
+	}
+	return string(raw)
+}
+
+func writeSnapshotFile(t *testing.T, path string, snapshot omnethdb.ExportSnapshot) {
+	t.Helper()
+	raw, err := json.Marshal(snapshot)
+	if err != nil {
+		t.Fatalf("Marshal returned unexpected error: %v", err)
+	}
+	if err := os.WriteFile(path, raw, 0o644); err != nil {
+		t.Fatalf("WriteFile returned unexpected error: %v", err)
 	}
 }

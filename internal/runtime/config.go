@@ -34,12 +34,24 @@ type SpaceSettings struct {
 	HumanTrust          *float32              `toml:"human_trust"`
 	SystemTrust         *float32              `toml:"system_trust"`
 	DefaultAgentTrust   *float32              `toml:"default_agent_trust"`
+	EpisodicWriters     RuntimeWritersPolicy  `toml:"episodic_writers"`
+	StaticWriters       RuntimeWritersPolicy  `toml:"static_writers"`
+	DerivedWriters      RuntimeWritersPolicy  `toml:"derived_writers"`
+	PromotePolicy       RuntimeWritersPolicy  `toml:"promote_policy"`
 	Embedder            RuntimeEmbedderConfig `toml:"embedder"`
 }
 
 type RuntimeEmbedderConfig struct {
 	ModelID    string `toml:"model_id"`
 	Dimensions int    `toml:"dimensions"`
+}
+
+type RuntimeWritersPolicy struct {
+	AllowHuman      *bool    `toml:"allow_human"`
+	AllowSystem     *bool    `toml:"allow_system"`
+	AllowAllAgents  *bool    `toml:"allow_all_agents"`
+	AllowedAgentIDs []string `toml:"allowed_agent_ids"`
+	MinTrustLevel   *float32 `toml:"min_trust_level"`
 }
 
 func ResolveLayout(root string) (Layout, error) {
@@ -129,6 +141,10 @@ func (c Config) SpaceInit(spaceID string, fallback storebolt.SpaceInit) storebol
 	if settings.DefaultAgentTrust != nil {
 		p.DefaultAgentTrust = *settings.DefaultAgentTrust
 	}
+	p.EpisodicWriters = applyRuntimeWritersPolicy(p.EpisodicWriters, settings.EpisodicWriters)
+	p.StaticWriters = applyRuntimeWritersPolicy(p.StaticWriters, settings.StaticWriters)
+	p.DerivedWriters = applyRuntimeWritersPolicy(p.DerivedWriters, settings.DerivedWriters)
+	p.PromotePolicy = applyRuntimeWritersPolicy(p.PromotePolicy, settings.PromotePolicy)
 	init.WritePolicy = p
 
 	return init
@@ -137,4 +153,23 @@ func (c Config) SpaceInit(spaceID string, fallback storebolt.SpaceInit) storebol
 func (c Config) SpaceSettings(spaceID string) (SpaceSettings, bool) {
 	settings, ok := c.Spaces[spaceID]
 	return settings, ok
+}
+
+func applyRuntimeWritersPolicy(base memory.WritersPolicy, override RuntimeWritersPolicy) memory.WritersPolicy {
+	if override.AllowHuman != nil {
+		base.AllowHuman = *override.AllowHuman
+	}
+	if override.AllowSystem != nil {
+		base.AllowSystem = *override.AllowSystem
+	}
+	if override.AllowAllAgents != nil {
+		base.AllowAllAgents = *override.AllowAllAgents
+	}
+	if override.AllowedAgentIDs != nil {
+		base.AllowedAgentIDs = append([]string(nil), override.AllowedAgentIDs...)
+	}
+	if override.MinTrustLevel != nil {
+		base.MinTrustLevel = *override.MinTrustLevel
+	}
+	return base
 }

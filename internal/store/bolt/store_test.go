@@ -219,6 +219,55 @@ func TestGetSpaceConfigReturnsErrSpaceNotFound(t *testing.T) {
 	}
 }
 
+func TestUpdateSpaceConfigPersistsExplicitOperatorChanges(t *testing.T) {
+	t.Parallel()
+
+	path := filepath.Join(t.TempDir(), "memory.db")
+	store, err := Open(path)
+	if err != nil {
+		t.Fatalf("Open returned unexpected error: %v", err)
+	}
+	t.Cleanup(func() { _ = store.Close() })
+
+	init := SpaceInit{
+		DefaultWeight: 1.0,
+		HalfLifeDays:  30,
+		WritePolicy:   DefaultSpaceWritePolicy(),
+	}
+
+	cfg, err := store.EnsureSpace("repo:company/app", testEmbedder{
+		modelID:    "builtin/hash-embedder-v1",
+		dimensions: 256,
+	}, init)
+	if err != nil {
+		t.Fatalf("EnsureSpace returned unexpected error: %v", err)
+	}
+
+	next := *cfg
+	next.DefaultWeight = 0.5
+	next.WritePolicy.StaticWriters.AllowAllAgents = false
+	next.WritePolicy.StaticWriters.AllowedAgentIDs = []string{"claude-sonnet-4-6"}
+
+	updated, err := store.UpdateSpaceConfig("repo:company/app", next)
+	if err != nil {
+		t.Fatalf("UpdateSpaceConfig returned unexpected error: %v", err)
+	}
+	if updated.DefaultWeight != 0.5 {
+		t.Fatalf("expected updated default weight, got %+v", *updated)
+	}
+
+	persisted, err := store.GetSpaceConfig("repo:company/app")
+	if err != nil {
+		t.Fatalf("GetSpaceConfig returned unexpected error: %v", err)
+	}
+	if persisted.DefaultWeight != 0.5 {
+		t.Fatalf("expected persisted default weight update, got %+v", *persisted)
+	}
+	if len(persisted.WritePolicy.StaticWriters.AllowedAgentIDs) != 1 || persisted.WritePolicy.StaticWriters.AllowedAgentIDs[0] != "claude-sonnet-4-6" {
+		t.Fatalf("expected persisted writer policy update, got %+v", persisted.WritePolicy.StaticWriters)
+	}
+}
+
 func TestLiveKindCountsTrackRememberForgetAndRevive(t *testing.T) {
 	t.Parallel()
 

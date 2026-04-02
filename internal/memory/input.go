@@ -71,3 +71,31 @@ type FindCandidatesRequest struct {
 	IncludeSuperseded bool
 	IncludeForgotten  bool
 }
+
+type QualityDiagnosticsRequest struct {
+	SpaceID            string
+	TopKPerMemory      int
+	MaxDuplicateGroups int
+	MaxUpdatePairs     int
+}
+
+type QualityDiagnosticsResult struct {
+	SpaceID         string                     `json:"space_id"`
+	GeneratedAt     time.Time                  `json:"generated_at"`
+	LiveStaticCount int                        `json:"live_static_count"`
+	DuplicateGroups []DuplicateDiagnosticGroup `json:"duplicate_groups"`
+	PossibleUpdates []MemorySimilarityPair     `json:"possible_updates"`
+}
+
+type DuplicateDiagnosticGroup struct {
+	MemoryIDs []string               `json:"memory_ids"`
+	Pairs     []MemorySimilarityPair `json:"pairs"`
+}
+
+type MemorySimilarityPair struct {
+	LeftID       string  `json:"left_id"`
+	RightID      string  `json:"right_id"`
+	LeftContent  string  `json:"left_content"`
+	RightContent string  `json:"right_content"`
+	Score        float32 `json:"score"`
+}

@@ -66,6 +66,13 @@ human_trust = 0.95
 system_trust = 1.0
 default_agent_trust = 0.4
 
+[spaces."repo:company/app".static_writers]
+allow_human = true
+allow_system = true
+allow_all_agents = false
+allowed_agent_ids = ["agent:claude"]
+min_trust_level = 0.3
+
 [spaces."repo:company/app".embedder]
 model_id = "openai/text-embedding-3-small"
 dimensions = 8
@@ -100,6 +107,15 @@ dimensions = 8
 	}
 	if init.WritePolicy.HumanTrust != 0.95 || init.WritePolicy.DefaultAgentTrust != 0.4 {
 		t.Fatalf("expected trust overrides to apply, got %+v", init.WritePolicy)
+	}
+	if init.WritePolicy.StaticWriters.AllowAllAgents {
+		t.Fatalf("expected explicit static writer override, got %+v", init.WritePolicy.StaticWriters)
+	}
+	if len(init.WritePolicy.StaticWriters.AllowedAgentIDs) != 1 || init.WritePolicy.StaticWriters.AllowedAgentIDs[0] != "agent:claude" {
+		t.Fatalf("expected allowed static writer override, got %+v", init.WritePolicy.StaticWriters)
+	}
+	if init.WritePolicy.StaticWriters.MinTrustLevel != 0.3 {
+		t.Fatalf("expected static writer trust override, got %+v", init.WritePolicy.StaticWriters)
 	}
 }
 
@@ -188,3 +204,85 @@ max_static_memories = 1
 		t.Fatal("expected config-driven static corpus limit to be enforced")
 	}
 }
+
+func TestReconcileSpaceConfigReportsApplyableWriterPolicyChange(t *testing.T) {
+	t.Parallel()
+
+	cfg := Config{
+		Spaces: map[string]SpaceSettings{
+			"repo:company/app": {
+				MaxStaticMemories: intPtr(5),
+				StaticWriters: RuntimeWritersPolicy{
+					AllowAllAgents:  boolPtr(false),
+					AllowedAgentIDs: []string{"claude-sonnet-4-6"},
+				},
+			},
+		},
+	}
+
+	persisted := memory.SpaceConfig{
+		EmbeddingModelID: "builtin/hash-embedder-v1",
+		Dimension:        256,
+		DefaultWeight:    1,
+		HalfLifeDays:     30,
+		WritePolicy:      policy.DefaultSpaceWritePolicy(),
+	}
+
+	diff := cfg.ReconcileSpaceConfig("repo:company/app", persisted)
+	if !diff.Applyable {
+		t.Fatalf("expected diff to be applyable, got %+v", diff)
+	}
+	if diff.Desired.WritePolicy.MaxStaticMemories != 5 {
+		t.Fatalf("expected desired max static override, got %+v", diff.Desired.WritePolicy)
+	}
+	if len(diff.Desired.WritePolicy.StaticWriters.AllowedAgentIDs) != 1 || diff.Desired.WritePolicy.StaticWriters.AllowedAgentIDs[0] != "claude-sonnet-4-6" {
+		t.Fatalf("expected static writer override, got %+v", diff.Desired.WritePolicy.StaticWriters)
+	}
+	if len(diff.Changes) == 0 {
+		t.Fatal("expected reconcile to report changes")
+	}
+}
+
+func TestReconcileSpaceConfigRejectsEmbedderDriftForApply(t *testing.T) {
+	t.Parallel()
+
+	cfg := Config{
+		Spaces: map[string]SpaceSettings{
+			"repo:company/app": {
+				Embedder: RuntimeEmbedderConfig{
+					ModelID:    "openai/text-embedding-3-small",
+					Dimensions: 1536,
+				},
+			},
+		},
+	}
+
+	persisted := memory.SpaceConfig{
+		EmbeddingModelID: "builtin/hash-embedder-v1",
+		Dimension:        256,
+		DefaultWeight:    1,
+		HalfLifeDays:     30,
+		WritePolicy:      policy.DefaultSpaceWritePolicy(),
+	}
+
+	diff := cfg.ReconcileSpaceConfig("repo:company/app", persisted)
+	if diff.Applyable {
+		t.Fatalf("expected embedder drift to block apply, got %+v", diff)
+	}
+	if len(diff.Errors) == 0 {
+		t.Fatal("expected reconcile errors for embedder drift")
+	}
+	foundBlocked := false
+	for _, change := range diff.Changes {
+		if change.Field == "embedding_model_id" && !change.Applyable {
+			foundBlocked = true
+			break
+		}
+	}
+	if !foundBlocked {
+		t.Fatalf("expected blocked embedder change, got %+v", diff.Changes)
+	}
+}
+
+func boolPtr(v bool) *bool { return &v }
+func intPtr(v int) *int    { return &v }

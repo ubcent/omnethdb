@@ -77,6 +77,7 @@ Capture release-blocking traceability, repeatable acceptance execution, recorded
 - [SPRINT_PLAN_M5.md](/Users/dmitrybondarchuk/Projects/my/omnethdb/docs/SPRINT_PLAN_M5.md)
 - [SPRINT_PLAN_M6.md](/Users/dmitrybondarchuk/Projects/my/omnethdb/docs/SPRINT_PLAN_M6.md)
 - [SPRINT_PLAN_M7.md](/Users/dmitrybondarchuk/Projects/my/omnethdb/docs/SPRINT_PLAN_M7.md)
+- [SPRINT_PLAN_M8.md](/Users/dmitrybondarchuk/Projects/my/omnethdb/docs/SPRINT_PLAN_M8.md)
 
 Purpose:
 Translate each milestone into scope, workstreams, execution order, risks, and definition of done.
@@ -99,6 +100,7 @@ Reusable template for execution-ready tickets.
 - [docs/tickets/m5/README.md](/Users/dmitrybondarchuk/Projects/my/omnethdb/docs/tickets/m5/README.md)
 - [docs/tickets/m6/README.md](/Users/dmitrybondarchuk/Projects/my/omnethdb/docs/tickets/m6/README.md)
 - [docs/tickets/m7/README.md](/Users/dmitrybondarchuk/Projects/my/omnethdb/docs/tickets/m7/README.md)
+- [docs/tickets/m8/README.md](/Users/dmitrybondarchuk/Projects/my/omnethdb/docs/tickets/m8/README.md)
 
 Purpose:
 Contain execution-ready tickets grouped by milestone.
@@ -128,6 +130,6 @@ If you are doing release validation:
 
 ## Current State
 
-The planning, implementation, and release-closure stack for `v1` is now complete.
+The planning, implementation, and release-closure stack for `v1` is complete.
 
-The next practical move is release management or post-`v1` follow-up planning, not more scaffolding.
+Post-`v1` follow-up planning now starts in [SPRINT_PLAN_M8.md](/Users/dmitrybondarchuk/Projects/my/omnethdb/docs/SPRINT_PLAN_M8.md), focused on memory quality, operator control, and embedding-assisted hygiene.

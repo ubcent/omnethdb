@@ -38,6 +38,8 @@ func main() {
 		err = runInit(os.Args[2:])
 	case "remember":
 		err = runRemember(os.Args[2:])
+	case "lint-remember":
+		err = runLintRemember(os.Args[2:])
 	case "recall":
 		err = runRecall(os.Args[2:])
 	case "profile":
@@ -52,8 +54,12 @@ func main() {
 		err = runRelated(os.Args[2:])
 	case "candidates":
 		err = runCandidates(os.Args[2:])
+	case "quality":
+		err = runQuality(os.Args[2:])
 	case "audit":
 		err = runAudit(os.Args[2:])
+	case "export":
+		err = runExport(os.Args[2:])
 	case "migrate":
 		err = runMigrate(os.Args[2:])
 	case "space":
@@ -169,6 +175,60 @@ func runRemember(args []string) error {
 		return err
 	}
 	return printJSON(mem)
+}
+
+func runLintRemember(args []string) error {
+	fs := flag.NewFlagSet("lint-remember", flag.ContinueOnError)
+	workspace := fs.String("workspace", defaultWorkspace, "workspace root")
+	spaceID := fs.String("space", "", "space id")
+	content := fs.String("content", "", "candidate content")
+	kind := fs.String("kind", "static", "memory kind: episodic|static|derived")
+	actorID := fs.String("actor-id", "user:cli", "actor id")
+	actorKind := fs.String("actor-kind", "human", "actor kind: human|agent|system")
+	confidence := fs.Float64("confidence", 1.0, "confidence 0..1")
+	updateID := fs.String("update", "", "optional update target id")
+	extendsIDs := fs.String("extends", "", "comma-separated extends target ids")
+	sourceIDs := fs.String("sources", "", "comma-separated source ids for derived writes")
+	rationale := fs.String("rationale", "", "derived rationale")
+	topK := fs.Int("top-k", 3, "top-k similar live memories")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	if strings.TrimSpace(*spaceID) == "" || strings.TrimSpace(*content) == "" {
+		return errors.New("lint-remember requires --space and --content")
+	}
+
+	store, _, cfg, err := openCLIStore(*workspace)
+	if err != nil {
+		return err
+	}
+	defer store.Close()
+	ensureEmbedderForSpace(store, cfg, *spaceID)
+
+	input := omnethdb.MemoryInput{
+		SpaceID:    *spaceID,
+		Content:    *content,
+		Kind:       parseMemoryKind(*kind),
+		Actor:      parseActor(*actorID, *actorKind),
+		Confidence: float32(*confidence),
+		SourceIDs:  splitCSV(*sourceIDs),
+		Rationale:  *rationale,
+		Relations: omnethdb.MemoryRelations{
+			Extends: splitCSV(*extendsIDs),
+		},
+	}
+	if strings.TrimSpace(*updateID) != "" {
+		input.Relations.Updates = []string{*updateID}
+	}
+
+	result, err := store.LintRemember(omnethdb.RememberLintRequest{
+		Input: input,
+		TopK:  *topK,
+	})
+	if err != nil {
+		return err
+	}
+	return printJSON(result)
 }
 
 func runRecall(args []string) error {
@@ -387,6 +447,39 @@ func runCandidates(args []string) error {
 	return printJSON(results)
 }
 
+func runQuality(args []string) error {
+	fs := flag.NewFlagSet("quality", flag.ContinueOnError)
+	workspace := fs.String("workspace", defaultWorkspace, "workspace root")
+	spaceID := fs.String("space", "", "space id")
+	topK := fs.Int("top-k-per-memory", 5, "top similar live candidates to inspect per live static memory")
+	maxDuplicateGroups := fs.Int("max-duplicate-groups", 8, "maximum duplicate groups to return")
+	maxUpdatePairs := fs.Int("max-update-pairs", 12, "maximum possible update pairs to return")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	if strings.TrimSpace(*spaceID) == "" {
+		return errors.New("quality requires --space")
+	}
+
+	store, _, cfg, err := openCLIStore(*workspace)
+	if err != nil {
+		return err
+	}
+	defer store.Close()
+	ensureEmbedderForSpace(store, cfg, *spaceID)
+
+	result, err := store.GetQualityDiagnostics(omnethdb.QualityDiagnosticsRequest{
+		SpaceID:            *spaceID,
+		TopKPerMemory:      *topK,
+		MaxDuplicateGroups: *maxDuplicateGroups,
+		MaxUpdatePairs:     *maxUpdatePairs,
+	})
+	if err != nil {
+		return err
+	}
+	return printJSON(result)
+}
+
 func runAudit(args []string) error {
 	fs := flag.NewFlagSet("audit", flag.ContinueOnError)
 	workspace := fs.String("workspace", defaultWorkspace, "workspace root")
@@ -451,7 +544,63 @@ func runMigrate(args []string) error {
 	return printJSON(spaceCfg)
 }
 
+func runExport(args []string) error {
+	fs := flag.NewFlagSet("export", flag.ContinueOnError)
+	workspace := fs.String("workspace", defaultWorkspace, "workspace root")
+	spaceID := fs.String("space", "", "space id")
+	format := fs.String("format", string(omnethdb.ExportFormatSnapshotJSON), "export format: snapshot-json|summary-md|graph-mermaid")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	if strings.TrimSpace(*spaceID) == "" {
+		return errors.New("export requires --space")
+	}
+
+	store, _, _, err := openCLIStore(*workspace)
+	if err != nil {
+		return err
+	}
+	defer store.Close()
+
+	req := omnethdb.ExportRequest{SpaceID: *spaceID}
+	switch omnethdb.ExportFormat(strings.TrimSpace(*format)) {
+	case omnethdb.ExportFormatSnapshotJSON:
+		snapshot, err := store.ExportSnapshot(req)
+		if err != nil {
+			return err
+		}
+		return printJSON(snapshot)
+	case omnethdb.ExportFormatSummaryMD:
+		out, err := store.RenderExportSummaryMarkdown(req)
+		if err != nil {
+			return err
+		}
+		_, err = fmt.Fprintln(os.Stdout, out)
+		return err
+	case omnethdb.ExportFormatGraphMermaid:
+		out, err := store.RenderExportGraphMermaid(req)
+		if err != nil {
+			return err
+		}
+		_, err = fmt.Fprintln(os.Stdout, out)
+		return err
+	default:
+		return fmt.Errorf("unsupported --format %q", *format)
+	}
+}
+
 func runSpace(args []string) error {
+	if len(args) > 0 {
+		switch args[0] {
+		case "validate-config":
+			return runSpaceValidateConfig(args[1:])
+		case "diff-config":
+			return runSpaceDiffConfig(args[1:])
+		case "apply-config":
+			return runSpaceApplyConfig(args[1:])
+		}
+	}
+
 	fs := flag.NewFlagSet("space", flag.ContinueOnError)
 	workspace := fs.String("workspace", defaultWorkspace, "workspace root")
 	spaceID := fs.String("space", "", "space id")
@@ -475,6 +624,83 @@ func runSpace(args []string) error {
 	return printJSON(cfg)
 }
 
+func runSpaceValidateConfig(args []string) error {
+	fs := flag.NewFlagSet("space validate-config", flag.ContinueOnError)
+	workspace := fs.String("workspace", defaultWorkspace, "workspace root")
+	spaceID := fs.String("space", "", "space id")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	if strings.TrimSpace(*spaceID) == "" {
+		return errors.New("space validate-config requires --space")
+	}
+
+	reconcile, _, err := resolveSpaceConfigReconcile(*workspace, *spaceID)
+	if err != nil {
+		return err
+	}
+	return printJSON(struct {
+		Valid bool                          `json:"valid"`
+		Diff  omnethdb.SpaceConfigReconcile `json:"diff"`
+	}{
+		Valid: reconcile.Applyable,
+		Diff:  reconcile,
+	})
+}
+
+func runSpaceDiffConfig(args []string) error {
+	fs := flag.NewFlagSet("space diff-config", flag.ContinueOnError)
+	workspace := fs.String("workspace", defaultWorkspace, "workspace root")
+	spaceID := fs.String("space", "", "space id")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	if strings.TrimSpace(*spaceID) == "" {
+		return errors.New("space diff-config requires --space")
+	}
+
+	reconcile, _, err := resolveSpaceConfigReconcile(*workspace, *spaceID)
+	if err != nil {
+		return err
+	}
+	return printJSON(reconcile)
+}
+
+func runSpaceApplyConfig(args []string) error {
+	fs := flag.NewFlagSet("space apply-config", flag.ContinueOnError)
+	workspace := fs.String("workspace", defaultWorkspace, "workspace root")
+	spaceID := fs.String("space", "", "space id")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	if strings.TrimSpace(*spaceID) == "" {
+		return errors.New("space apply-config requires --space")
+	}
+
+	reconcile, store, err := resolveSpaceConfigReconcile(*workspace, *spaceID)
+	if err != nil {
+		return err
+	}
+	defer store.Close()
+
+	if !reconcile.Applyable {
+		return fmt.Errorf("config cannot be applied: %s", strings.Join(reconcile.Errors, "; "))
+	}
+	updated, err := store.UpdateSpaceConfig(*spaceID, reconcile.Desired)
+	if err != nil {
+		return err
+	}
+	return printJSON(struct {
+		Applied bool                          `json:"applied"`
+		Config  *omnethdb.SpaceConfig         `json:"config"`
+		Diff    omnethdb.SpaceConfigReconcile `json:"diff"`
+	}{
+		Applied: true,
+		Config:  updated,
+		Diff:    reconcile,
+	})
+}
+
 func runConfig(args []string) error {
 	fs := flag.NewFlagSet("config", flag.ContinueOnError)
 	workspace := fs.String("workspace", defaultWorkspace, "workspace root")
@@ -494,6 +720,20 @@ func runConfig(args []string) error {
 		Layout: layout,
 		Config: cfg,
 	})
+}
+
+func resolveSpaceConfigReconcile(workspace string, spaceID string) (omnethdb.SpaceConfigReconcile, *omnethdb.Store, error) {
+	store, _, cfg, err := openCLIStore(workspace)
+	if err != nil {
+		return omnethdb.SpaceConfigReconcile{}, nil, err
+	}
+	persisted, err := store.GetSpaceConfig(spaceID)
+	if err != nil {
+		_ = store.Close()
+		return omnethdb.SpaceConfigReconcile{}, nil, err
+	}
+	reconcile := cfg.ReconcileSpaceConfig(spaceID, *persisted)
+	return reconcile, store, nil
 }
 
 func runServe(args []string) error {
@@ -701,6 +941,7 @@ Usage:
 Commands:
   init      bootstrap a space
   remember  write a memory
+  lint-remember preview duplicate/update/blob warnings for a candidate memory
   recall    query live memories
   profile   build a layered memory profile
   forget    forget a memory
@@ -708,18 +949,29 @@ Commands:
   lineage   inspect a lineage
   related   traverse explicit relations
   candidates raw cosine candidate search
+  quality   inspect duplicate and update diagnostics for a space
   audit     inspect audit history
+  export    render inspection exports
   migrate   migrate a space to a new embedder
   space     print persisted space config
   config    print workspace layout and loaded config
   serve     run the HTTP API server
   serve-grpc run the gRPC API server
 
+Space subcommands:
+  space validate-config --workspace . --space repo:company/app
+  space diff-config --workspace . --space repo:company/app
+  space apply-config --workspace . --space repo:company/app
+
 Examples:
   omnethdb init --workspace . --space repo:company/app
   omnethdb remember --workspace . --space repo:company/app --kind static --content "payments use cursor pagination"
+  omnethdb lint-remember --workspace . --space repo:company/app --kind static --content "payments use signed cursor pagination"
   omnethdb recall --workspace . --spaces repo:company/app --query pagination
   omnethdb candidates --workspace . --space repo:company/app --content "pagination"
+  omnethdb quality --workspace . --space repo:company/app
+  omnethdb export --workspace . --space repo:company/app --format summary-md
+  omnethdb space diff-config --workspace . --space repo:company/app
   omnethdb serve --workspace . --addr :8080
   omnethdb serve-grpc --workspace . --addr :9090
 `)

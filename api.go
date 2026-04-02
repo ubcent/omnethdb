@@ -8,32 +8,56 @@ import (
 )
 
 type (
-	Store                 = storebolt.Store
-	SpaceInit             = storebolt.SpaceInit
-	SpaceConfig           = memory.SpaceConfig
-	WorkspaceLayout       = runtime.Layout
-	RuntimeConfig         = runtime.Config
-	RuntimeSpaceSettings  = runtime.SpaceSettings
-	RuntimeEmbedderConfig = runtime.RuntimeEmbedderConfig
-	AuditEntry            = memory.AuditEntry
-	ForgetRecord          = memory.ForgetRecord
-	Memory                = memory.Memory
-	MemoryProfile         = memory.MemoryProfile
-	FindCandidatesRequest = memory.FindCandidatesRequest
-	ListMemoriesRequest   = memory.ListMemoriesRequest
-	MemoryInput           = memory.MemoryInput
-	ProfileRequest        = memory.ProfileRequest
-	RecallRequest         = memory.RecallRequest
-	ReviveInput           = memory.ReviveInput
-	MemoryRelations       = memory.MemoryRelations
-	RelationType          = memory.RelationType
-	ScoredMemory          = memory.ScoredMemory
-	MemoryKind            = memory.MemoryKind
-	Actor                 = memory.Actor
-	ActorKind             = memory.ActorKind
-	WritersPolicy         = memory.WritersPolicy
-	SpaceWritePolicy      = memory.SpaceWritePolicy
-	Embedder              = memory.Embedder
+	Store                     = storebolt.Store
+	SpaceInit                 = storebolt.SpaceInit
+	SpaceConfig               = memory.SpaceConfig
+	WorkspaceLayout           = runtime.Layout
+	RuntimeConfig             = runtime.Config
+	RuntimeSpaceSettings      = runtime.SpaceSettings
+	RuntimeEmbedderConfig     = runtime.RuntimeEmbedderConfig
+	SpaceConfigChange         = runtime.SpaceConfigChange
+	SpaceConfigReconcile      = runtime.SpaceConfigReconcile
+	AuditEntry                = memory.AuditEntry
+	ForgetRecord              = memory.ForgetRecord
+	ExportEdge                = memory.ExportEdge
+	ExportDiff                = memory.ExportDiff
+	ExportDiffRequest         = memory.ExportDiffRequest
+	ExportFormat              = memory.ExportFormat
+	ExportLineage             = memory.ExportLineage
+	ExportLineageDiff         = memory.ExportLineageDiff
+	ExportRequest             = memory.ExportRequest
+	ExportSnapshot            = memory.ExportSnapshot
+	RememberLintRequest       = memory.RememberLintRequest
+	RememberLintResult        = memory.RememberLintResult
+	RememberLintWarning       = memory.RememberLintWarning
+	RememberLintSuggestion    = memory.RememberLintSuggestion
+	Memory                    = memory.Memory
+	MemoryProfile             = memory.MemoryProfile
+	FindCandidatesRequest     = memory.FindCandidatesRequest
+	QualityDiagnosticsRequest = memory.QualityDiagnosticsRequest
+	QualityDiagnosticsResult  = memory.QualityDiagnosticsResult
+	DuplicateDiagnosticGroup  = memory.DuplicateDiagnosticGroup
+	MemorySimilarityPair      = memory.MemorySimilarityPair
+	ListMemoriesRequest       = memory.ListMemoriesRequest
+	MemoryInput               = memory.MemoryInput
+	ProfileRequest            = memory.ProfileRequest
+	RecallRequest             = memory.RecallRequest
+	ReviveInput               = memory.ReviveInput
+	MemoryRelations           = memory.MemoryRelations
+	RelationType              = memory.RelationType
+	ScoredMemory              = memory.ScoredMemory
+	MemoryKind                = memory.MemoryKind
+	Actor                     = memory.Actor
+	ActorKind                 = memory.ActorKind
+	WritersPolicy             = memory.WritersPolicy
+	SpaceWritePolicy          = memory.SpaceWritePolicy
+	Embedder                  = memory.Embedder
+)
+
+const (
+	ExportFormatSnapshotJSON ExportFormat = memory.ExportFormatSnapshotJSON
+	ExportFormatSummaryMD    ExportFormat = memory.ExportFormatSummaryMD
+	ExportFormatGraphMermaid ExportFormat = memory.ExportFormatGraphMermaid
 )
 
 const (
@@ -55,6 +79,15 @@ const (
 	RelationDerives RelationType = memory.RelationDerives
 )
 
+const (
+	RememberLintPossibleDuplicate     = memory.RememberLintPossibleDuplicate
+	RememberLintPossibleUpdateTarget  = memory.RememberLintPossibleUpdateTarget
+	RememberLintMixedFactBlob         = memory.RememberLintMixedFactBlob
+	RememberLintSuggestSkipDuplicate  = memory.RememberLintSuggestSkipDuplicate
+	RememberLintSuggestUpdateExisting = memory.RememberLintSuggestUpdateExisting
+	RememberLintSuggestSplitCandidate = memory.RememberLintSuggestSplitCandidate
+)
+
 var (
 	Open                      = storebolt.Open
 	DefaultSpaceWritePolicy   = policy.DefaultSpaceWritePolicy
@@ -62,6 +95,7 @@ var (
 	ResolveActorTrust         = policy.ResolveActorTrust
 	CanWriteKind              = policy.CanWriteKind
 	CanPromote                = policy.CanPromote
+	CompareExportSnapshots    = memory.CompareExportSnapshots
 	ResolveWorkspaceLayout    = runtime.ResolveLayout
 	OpenWorkspace             = runtime.OpenWorkspace
 	LoadRuntimeConfig         = runtime.LoadConfig
