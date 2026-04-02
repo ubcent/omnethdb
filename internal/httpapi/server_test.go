@@ -21,6 +21,12 @@ type testEmbedder struct {
 	dimensions int
 }
 
+type mappedEmbedder struct {
+	modelID    string
+	dimensions int
+	vectors    map[string][]float32
+}
+
 func (e testEmbedder) Embed(_ context.Context, text string) ([]float32, error) {
 	out := make([]float32, e.dimensions)
 	for i := range out {
@@ -31,6 +37,17 @@ func (e testEmbedder) Embed(_ context.Context, text string) ([]float32, error) {
 
 func (e testEmbedder) Dimensions() int { return e.dimensions }
 func (e testEmbedder) ModelID() string { return e.modelID }
+
+func (e mappedEmbedder) Embed(_ context.Context, text string) ([]float32, error) {
+	if vector, ok := e.vectors[text]; ok {
+		return append([]float32(nil), vector...), nil
+	}
+	out := make([]float32, e.dimensions)
+	return out, nil
+}
+
+func (e mappedEmbedder) Dimensions() int { return e.dimensions }
+func (e mappedEmbedder) ModelID() string { return e.modelID }
 
 func TestHTTPAPIEndToEndMemoryLifecycle(t *testing.T) {
 	t.Parallel()
@@ -189,6 +206,139 @@ func TestHTTPAPIExposesRelatedAndCandidates(t *testing.T) {
 	}
 }
 
+func TestHTTPAPIExposesQualityDiagnostics(t *testing.T) {
+	t.Parallel()
+
+	path := filepath.Join(t.TempDir(), "memory.db")
+	store, err := omnethdb.Open(path)
+	if err != nil {
+		t.Fatalf("Open returned unexpected error: %v", err)
+	}
+	t.Cleanup(func() { _ = store.Close() })
+
+	cfg := &omnethdb.RuntimeConfig{
+		Spaces: map[string]omnethdb.RuntimeSpaceSettings{
+			"repo:company/app": {
+				Embedder: omnethdb.RuntimeEmbedderConfig{
+					ModelID:    "test/http-quality",
+					Dimensions: 2,
+				},
+			},
+		},
+	}
+	store.RegisterEmbedder(mappedEmbedder{
+		modelID:    "test/http-quality",
+		dimensions: 2,
+		vectors: map[string][]float32{
+			"payments use signed cursor pagination":       {1, 0},
+			"payments use signed cursor pagination again": {1, 0},
+			"payments use HMAC signed cursor pagination":  {0.88, 0.3},
+			"ledger entries are append-only":              {0, 1},
+		},
+	})
+	server := httptest.NewServer(NewHandler(store, cfg))
+	defer server.Close()
+
+	doJSON(t, http.MethodPost, server.URL+"/v1/spaces/init", map[string]any{
+		"space_id": "repo:company/app",
+	}, http.StatusOK, nil)
+
+	for _, content := range []string{
+		"payments use signed cursor pagination",
+		"payments use signed cursor pagination again",
+		"payments use HMAC signed cursor pagination",
+		"ledger entries are append-only",
+	} {
+		doJSON(t, http.MethodPost, server.URL+"/v1/memories/remember", map[string]any{
+			"SpaceID":    "repo:company/app",
+			"Content":    content,
+			"Kind":       omnethdb.KindStatic,
+			"Actor":      omnethdb.Actor{ID: "user:alice", Kind: omnethdb.ActorHuman},
+			"Confidence": 1.0,
+		}, http.StatusOK, nil)
+	}
+
+	var diagnostics omnethdb.QualityDiagnosticsResult
+	doJSON(t, http.MethodGet, server.URL+"/v1/diagnostics/quality?space_id=repo:company/app", nil, http.StatusOK, &diagnostics)
+	if diagnostics.LiveStaticCount != 4 {
+		t.Fatalf("unexpected live static count: %#v", diagnostics)
+	}
+	if len(diagnostics.DuplicateGroups) == 0 {
+		t.Fatalf("expected duplicate groups, got %#v", diagnostics)
+	}
+	if len(diagnostics.PossibleUpdates) == 0 {
+		t.Fatalf("expected possible updates, got %#v", diagnostics)
+	}
+
+	var cleanupPlan omnethdb.QualityCleanupPlanResult
+	doJSON(t, http.MethodGet, server.URL+"/v1/diagnostics/quality/cleanup-plan?space_id=repo:company/app", nil, http.StatusOK, &cleanupPlan)
+	if len(cleanupPlan.DuplicateSuggestions) == 0 {
+		t.Fatalf("expected duplicate cleanup suggestions, got %#v", cleanupPlan)
+	}
+}
+
+func TestHTTPAPIExposesBatchForget(t *testing.T) {
+	t.Parallel()
+
+	path := filepath.Join(t.TempDir(), "memory.db")
+	store, err := omnethdb.Open(path)
+	if err != nil {
+		t.Fatalf("Open returned unexpected error: %v", err)
+	}
+	t.Cleanup(func() { _ = store.Close() })
+
+	cfg := &omnethdb.RuntimeConfig{
+		Spaces: map[string]omnethdb.RuntimeSpaceSettings{
+			"repo:company/app": {
+				Embedder: omnethdb.RuntimeEmbedderConfig{
+					ModelID:    "builtin/hash-embedder-v1",
+					Dimensions: 256,
+				},
+			},
+		},
+	}
+	store.RegisterEmbedder(testEmbedder{modelID: "builtin/hash-embedder-v1", dimensions: 256})
+	server := httptest.NewServer(NewHandler(store, cfg))
+	defer server.Close()
+
+	doJSON(t, http.MethodPost, server.URL+"/v1/spaces/init", map[string]any{
+		"space_id": "repo:company/app",
+	}, http.StatusOK, nil)
+
+	var first omnethdb.Memory
+	doJSON(t, http.MethodPost, server.URL+"/v1/memories/remember", map[string]any{
+		"SpaceID":    "repo:company/app",
+		"Content":    "duplicate fact one",
+		"Kind":       omnethdb.KindStatic,
+		"Actor":      omnethdb.Actor{ID: "user:alice", Kind: omnethdb.ActorHuman},
+		"Confidence": 1.0,
+	}, http.StatusOK, &first)
+
+	var second omnethdb.Memory
+	doJSON(t, http.MethodPost, server.URL+"/v1/memories/remember", map[string]any{
+		"SpaceID":    "repo:company/app",
+		"Content":    "duplicate fact two",
+		"Kind":       omnethdb.KindStatic,
+		"Actor":      omnethdb.Actor{ID: "user:alice", Kind: omnethdb.ActorHuman},
+		"Confidence": 1.0,
+	}, http.StatusOK, &second)
+
+	doJSON(t, http.MethodPost, server.URL+"/v1/memories/forget-batch", map[string]any{
+		"memory_ids": []string{first.ID, second.ID},
+		"actor":      omnethdb.Actor{ID: "user:alice", Kind: omnethdb.ActorHuman},
+		"reason":     "duplicate cleanup",
+	}, http.StatusOK, nil)
+
+	var listed []omnethdb.Memory
+	doJSON(t, http.MethodPost, server.URL+"/v1/memories/list", map[string]any{
+		"SpaceIDs": []string{"repo:company/app"},
+		"Kinds":    []omnethdb.MemoryKind{omnethdb.KindStatic},
+	}, http.StatusOK, &listed)
+	if len(listed) != 0 {
+		t.Fatalf("expected no live memories after batch forget, got %#v", listed)
+	}
+}
+
 func TestHTTPAPIExposesStructuredListAndBatchRemember(t *testing.T) {
 	t.Parallel()
 
@@ -331,7 +481,7 @@ func TestHTTPAPIExposesInspectorPage(t *testing.T) {
 	defer server.Close()
 
 	page := doText(t, http.MethodGet, server.URL+"/inspect?space_id=repo:company/app", http.StatusOK)
-	if !strings.Contains(page, "OmnethDB Inspector") || !strings.Contains(page, "/v1/export?space_id=") || !strings.Contains(page, "repo:company/app") || !strings.Contains(page, "Signals") || !strings.Contains(page, "Live View") || !strings.Contains(page, "before_file") || !strings.Contains(page, "after_file") {
+	if !strings.Contains(page, "OmnethDB Inspector") || !strings.Contains(page, "/v1/export?space_id=") || !strings.Contains(page, "repo:company/app") || !strings.Contains(page, "Signals") || !strings.Contains(page, "Quality") || !strings.Contains(page, "Cleanup Plan") || !strings.Contains(page, "Live View") || !strings.Contains(page, "before_file") || !strings.Contains(page, "after_file") {
 		t.Fatalf("unexpected inspector page:\n%s", page)
 	}
 }

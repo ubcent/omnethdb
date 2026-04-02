@@ -56,6 +56,10 @@ func main() {
 		err = runCandidates(os.Args[2:])
 	case "quality":
 		err = runQuality(os.Args[2:])
+	case "quality-plan":
+		err = runQualityPlan(os.Args[2:])
+	case "forget-batch":
+		err = runForgetBatch(os.Args[2:])
 	case "audit":
 		err = runAudit(os.Args[2:])
 	case "export":
@@ -478,6 +482,66 @@ func runQuality(args []string) error {
 		return err
 	}
 	return printJSON(result)
+}
+
+func runQualityPlan(args []string) error {
+	fs := flag.NewFlagSet("quality-plan", flag.ContinueOnError)
+	workspace := fs.String("workspace", defaultWorkspace, "workspace root")
+	spaceID := fs.String("space", "", "space id")
+	maxDuplicateActions := fs.Int("max-duplicate-actions", 8, "maximum duplicate cleanup suggestions to return")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	if strings.TrimSpace(*spaceID) == "" {
+		return errors.New("quality-plan requires --space")
+	}
+
+	store, _, cfg, err := openCLIStore(*workspace)
+	if err != nil {
+		return err
+	}
+	defer store.Close()
+	ensureEmbedderForSpace(store, cfg, *spaceID)
+
+	result, err := store.BuildQualityCleanupPlan(omnethdb.QualityCleanupPlanRequest{
+		SpaceID:             *spaceID,
+		MaxDuplicateActions: *maxDuplicateActions,
+	})
+	if err != nil {
+		return err
+	}
+	return printJSON(result)
+}
+
+func runForgetBatch(args []string) error {
+	fs := flag.NewFlagSet("forget-batch", flag.ContinueOnError)
+	workspace := fs.String("workspace", defaultWorkspace, "workspace root")
+	ids := fs.String("ids", "", "comma-separated memory ids")
+	actorID := fs.String("actor-id", "user:cli", "actor id")
+	actorKind := fs.String("actor-kind", "human", "actor kind")
+	reason := fs.String("reason", "", "forget reason")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	if strings.TrimSpace(*ids) == "" || strings.TrimSpace(*reason) == "" {
+		return errors.New("forget-batch requires --ids and --reason")
+	}
+
+	store, _, _, err := openCLIStore(*workspace)
+	if err != nil {
+		return err
+	}
+	defer store.Close()
+
+	items := splitCSV(*ids)
+	if err := store.ForgetBatch(items, parseActor(*actorID, *actorKind), *reason); err != nil {
+		return err
+	}
+	return printJSON(map[string]any{
+		"status":     "ok",
+		"memory_ids": items,
+		"reason":     *reason,
+	})
 }
 
 func runAudit(args []string) error {
@@ -950,7 +1014,9 @@ Commands:
   related   traverse explicit relations
   candidates raw cosine candidate search
   quality   inspect duplicate and update diagnostics for a space
+  quality-plan build an advisory duplicate cleanup plan for a space
   audit     inspect audit history
+  forget-batch forget multiple memories in one explicit operator action
   export    render inspection exports
   migrate   migrate a space to a new embedder
   space     print persisted space config
@@ -970,6 +1036,8 @@ Examples:
   omnethdb recall --workspace . --spaces repo:company/app --query pagination
   omnethdb candidates --workspace . --space repo:company/app --content "pagination"
   omnethdb quality --workspace . --space repo:company/app
+  omnethdb quality-plan --workspace . --space repo:company/app
+  omnethdb forget-batch --workspace . --ids mem-1,mem-2 --reason "duplicate cleanup"
   omnethdb export --workspace . --space repo:company/app --format summary-md
   omnethdb space diff-config --workspace . --space repo:company/app
   omnethdb serve --workspace . --addr :8080

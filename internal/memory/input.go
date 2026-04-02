@@ -99,3 +99,21 @@ type MemorySimilarityPair struct {
 	RightContent string  `json:"right_content"`
 	Score        float32 `json:"score"`
 }
+
+type QualityCleanupPlanRequest struct {
+	SpaceID             string
+	MaxDuplicateActions int
+}
+
+type QualityCleanupPlanResult struct {
+	SpaceID              string                       `json:"space_id"`
+	GeneratedAt          time.Time                    `json:"generated_at"`
+	DuplicateSuggestions []DuplicateCleanupSuggestion `json:"duplicate_suggestions"`
+}
+
+type DuplicateCleanupSuggestion struct {
+	KeepID         string                   `json:"keep_id"`
+	ForgetIDs      []string                 `json:"forget_ids"`
+	Rationale      string                   `json:"rationale"`
+	DuplicateGroup DuplicateDiagnosticGroup `json:"duplicate_group"`
+}

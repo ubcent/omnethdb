@@ -33,8 +33,11 @@ func NewHandler(store *omnethdb.Store, cfg *omnethdb.RuntimeConfig) http.Handler
 	mux.HandleFunc("/v1/recall", s.handleRecall)
 	mux.HandleFunc("/v1/profile", s.handleProfile)
 	mux.HandleFunc("/v1/candidates", s.handleCandidates)
+	mux.HandleFunc("/v1/diagnostics/quality", s.handleQualityDiagnostics)
+	mux.HandleFunc("/v1/diagnostics/quality/cleanup-plan", s.handleQualityCleanupPlan)
 	mux.HandleFunc("/v1/memories/list", s.handleListMemories)
 	mux.HandleFunc("/v1/memories/remember-batch", s.handleRememberBatch)
+	mux.HandleFunc("/v1/memories/forget-batch", s.handleForgetBatch)
 	mux.HandleFunc("/v1/memories/remember", s.handleRemember)
 	mux.HandleFunc("/v1/memories/", s.handleMemoryAction)
 	mux.HandleFunc("/v1/lineages/", s.handleLineageAction)
@@ -211,6 +214,103 @@ func (s *Server) handleCandidates(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, results)
+}
+
+func (s *Server) handleQualityDiagnostics(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
+	spaceID := strings.TrimSpace(r.URL.Query().Get("space_id"))
+	if spaceID == "" {
+		writeError(w, http.StatusBadRequest, "space_id is required")
+		return
+	}
+	s.ensureEmbedderForSpace(spaceID)
+	req := omnethdb.QualityDiagnosticsRequest{SpaceID: spaceID}
+	if raw := strings.TrimSpace(r.URL.Query().Get("top_k_per_memory")); raw != "" {
+		value, err := strconv.Atoi(raw)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "invalid top_k_per_memory")
+			return
+		}
+		req.TopKPerMemory = value
+	}
+	if raw := strings.TrimSpace(r.URL.Query().Get("max_duplicate_groups")); raw != "" {
+		value, err := strconv.Atoi(raw)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "invalid max_duplicate_groups")
+			return
+		}
+		req.MaxDuplicateGroups = value
+	}
+	if raw := strings.TrimSpace(r.URL.Query().Get("max_update_pairs")); raw != "" {
+		value, err := strconv.Atoi(raw)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "invalid max_update_pairs")
+			return
+		}
+		req.MaxUpdatePairs = value
+	}
+	result, err := s.store.GetQualityDiagnostics(req)
+	if err != nil {
+		writeStoreError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, result)
+}
+
+func (s *Server) handleQualityCleanupPlan(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
+	spaceID := strings.TrimSpace(r.URL.Query().Get("space_id"))
+	if spaceID == "" {
+		writeError(w, http.StatusBadRequest, "space_id is required")
+		return
+	}
+	s.ensureEmbedderForSpace(spaceID)
+	req := omnethdb.QualityCleanupPlanRequest{SpaceID: spaceID}
+	if raw := strings.TrimSpace(r.URL.Query().Get("max_duplicate_actions")); raw != "" {
+		value, err := strconv.Atoi(raw)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "invalid max_duplicate_actions")
+			return
+		}
+		req.MaxDuplicateActions = value
+	}
+	result, err := s.store.BuildQualityCleanupPlan(req)
+	if err != nil {
+		writeStoreError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, result)
+}
+
+func (s *Server) handleForgetBatch(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
+	var body struct {
+		MemoryIDs []string       `json:"memory_ids"`
+		Actor     omnethdb.Actor `json:"actor"`
+		Reason    string         `json:"reason"`
+	}
+	if err := decodeJSON(r, &body); err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	if err := s.store.ForgetBatch(body.MemoryIDs, body.Actor, body.Reason); err != nil {
+		writeStoreError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{
+		"status":     "ok",
+		"memory_ids": body.MemoryIDs,
+		"reason":     body.Reason,
+	})
 }
 
 func (s *Server) handleAudit(w http.ResponseWriter, r *http.Request) {
@@ -842,6 +942,32 @@ var inspectorTemplate = template.Must(template.New("inspector").Parse(`<!doctype
         <article class="panel">
           <div class="panel-header">
             <div>
+              <h2>Quality</h2>
+              <span>Duplicate clusters and possible update pairs across the live static corpus</span>
+            </div>
+            <span class="status" id="quality-status">Loading…</span>
+          </div>
+          <div class="body">
+            <div class="cards" id="quality-list"></div>
+          </div>
+        </article>
+
+        <article class="panel">
+          <div class="panel-header">
+            <div>
+              <h2>Cleanup Plan</h2>
+              <span>Advisory duplicate cleanup targets. Review first, then apply explicitly outside the inspector.</span>
+            </div>
+            <span class="status" id="cleanup-status">Loading…</span>
+          </div>
+          <div class="body">
+            <div class="cards" id="cleanup-list"></div>
+          </div>
+        </article>
+
+        <article class="panel">
+          <div class="panel-header">
+            <div>
               <h2>Live View</h2>
               <span>Client-side filtered live corpus</span>
             </div>
@@ -912,6 +1038,10 @@ var inspectorTemplate = template.Must(template.New("inspector").Parse(`<!doctype
     const snapshotEl = document.getElementById("snapshot");
     const signalsEl = document.getElementById("signals");
     const signalsStatus = document.getElementById("signals-status");
+    const qualityListEl = document.getElementById("quality-list");
+    const qualityStatus = document.getElementById("quality-status");
+    const cleanupListEl = document.getElementById("cleanup-list");
+    const cleanupStatus = document.getElementById("cleanup-status");
     const diffListEl = document.getElementById("diff-list");
     const diffStatus = document.getElementById("diff-status");
     const liveListEl = document.getElementById("live-list");
@@ -1084,6 +1214,64 @@ var inspectorTemplate = template.Must(template.New("inspector").Parse(`<!doctype
       signalsStatus.textContent = "Ready";
     }
 
+    function renderQuality(result) {
+      const groups = result?.duplicate_groups ?? [];
+      const updates = result?.possible_updates ?? [];
+      const cards = [];
+
+      if (groups.length > 0) {
+        cards.push(...groups.map((group, index) =>
+          '<article class="memory-card">' +
+            '<header><h3>Duplicate cluster ' + escapeHTML(index + 1) + '</h3></header>' +
+            '<div class="memory-meta">' + group.memory_ids.map(id =>
+              '<span class="chip">' + escapeHTML(id) + '</span>'
+            ).join("") + '</div>' +
+            '<p>' + group.pairs.map(pair =>
+              escapeHTML(pair.left_id + ' <-> ' + pair.right_id + ' (' + Number(pair.score ?? 0).toFixed(2) + ')')
+            ).join(' | ') + '</p>' +
+          '</article>'
+        ));
+      }
+
+      if (updates.length > 0) {
+        cards.push(
+          '<article class="memory-card">' +
+            '<header><h3>Possible update pairs</h3></header>' +
+            '<div class="memory-meta">' + updates.map(pair =>
+              '<span class="chip">' + escapeHTML(pair.left_id + ' -> ' + pair.right_id + ' (' + Number(pair.score ?? 0).toFixed(2) + ')') + '</span>'
+            ).join("") + '</div>' +
+          '</article>'
+        );
+      }
+
+      if (cards.length === 0) {
+        cards.push('<article class="memory-card"><p>No duplicate clusters or update candidates crossed the current diagnostic thresholds.</p></article>');
+      }
+
+      qualityListEl.innerHTML = cards.join("");
+      qualityStatus.textContent = "Ready";
+    }
+
+    function renderCleanupPlan(plan) {
+      const suggestions = plan?.duplicate_suggestions ?? [];
+      if (suggestions.length === 0) {
+        cleanupListEl.innerHTML = '<article class="memory-card"><p>No duplicate cleanup suggestions were produced at the current thresholds.</p></article>';
+        cleanupStatus.textContent = "Ready";
+        return;
+      }
+      cleanupListEl.innerHTML = suggestions.map((item, index) =>
+        '<article class="memory-card">' +
+          '<header><h3>Duplicate cleanup suggestion ' + escapeHTML(index + 1) + '</h3></header>' +
+          '<div class="memory-meta">' +
+            '<span class="chip">keep ' + escapeHTML(item.keep_id) + '</span>' +
+            item.forget_ids.map(id => '<span class="chip">forget ' + escapeHTML(id) + '</span>').join("") +
+          '</div>' +
+          '<p>' + escapeHTML(item.rationale) + '</p>' +
+        '</article>'
+      ).join("");
+      cleanupStatus.textContent = "Ready";
+    }
+
     function renderLiveList(snapshot) {
       const live = (snapshot?.live_memories ?? []).filter(mem => selectedKind === "all" || kindLabel(mem.kind) === selectedKind);
       if (live.length === 0) {
@@ -1171,25 +1359,33 @@ var inspectorTemplate = template.Must(template.New("inspector").Parse(`<!doctype
       summaryStatus.textContent = "Loading…";
       snapshotStatus.textContent = "Loading…";
       signalsStatus.textContent = "Loading…";
+      qualityStatus.textContent = "Loading…";
+      cleanupStatus.textContent = "Loading…";
       diffStatus.textContent = (sinceInput.value.trim() || (beforeFileInput.value.trim() && afterFileInput.value.trim())) ? "Loading…" : "Idle";
       graphStatus.textContent = "Loading…";
       summaryStatus.className = "status";
       snapshotStatus.className = "status";
       signalsStatus.className = "status";
+      qualityStatus.className = "status";
+      cleanupStatus.className = "status";
       graphStatus.className = "status";
       try {
         const base = "/v1/export?space_id=" + encodeURIComponent(spaceID);
+        const qualityURL = "/v1/diagnostics/quality?space_id=" + encodeURIComponent(spaceID);
+        const cleanupURL = "/v1/diagnostics/quality/cleanup-plan?space_id=" + encodeURIComponent(spaceID);
         let diffURL = null;
         if (beforeFileInput.value.trim() && afterFileInput.value.trim()) {
           diffURL = "/v1/export/compare?before_file=" + encodeURIComponent(beforeFileInput.value.trim()) + "&after_file=" + encodeURIComponent(afterFileInput.value.trim());
         } else if (sinceInput.value.trim()) {
           diffURL = "/v1/export/diff?space_id=" + encodeURIComponent(spaceID) + "&since=" + encodeURIComponent(sinceInput.value.trim());
         }
-        const [summary, snapshot, graph, diff] = await Promise.all([
+        const [summary, snapshot, graph, diff, quality, cleanupPlan] = await Promise.all([
           fetchText(base + "&format=summary-md"),
           fetchJSON(base),
           fetchText(base + "&format=graph-mermaid"),
           diffURL ? fetchJSON(diffURL) : Promise.resolve(null),
+          fetchJSON(qualityURL),
+          fetchJSON(cleanupURL),
         ]);
 
         summaryEl.textContent = summary;
@@ -1201,6 +1397,8 @@ var inspectorTemplate = template.Must(template.New("inspector").Parse(`<!doctype
         summaryStatus.textContent = "Ready";
         snapshotStatus.textContent = "Ready";
         renderSignals(snapshot);
+        renderQuality(quality);
+        renderCleanupPlan(cleanupPlan);
         renderLiveList(snapshot);
         renderDiff(diff);
         await renderGraph(graph);
@@ -1209,16 +1407,22 @@ var inspectorTemplate = template.Must(template.New("inspector").Parse(`<!doctype
         summaryStatus.textContent = "Load failed";
         snapshotStatus.textContent = "Load failed";
         signalsStatus.textContent = "Load failed";
+        qualityStatus.textContent = "Load failed";
+        cleanupStatus.textContent = "Load failed";
         diffStatus.textContent = "Load failed";
         graphStatus.textContent = "Load failed";
         summaryStatus.className = "status error";
         snapshotStatus.className = "status error";
         signalsStatus.className = "status error";
+        qualityStatus.className = "status error";
+        cleanupStatus.className = "status error";
         diffStatus.className = "status error";
         graphStatus.className = "status error";
         summaryEl.textContent = message;
         snapshotEl.textContent = message;
         signalsEl.innerHTML = '<article class="signal bad"><p>' + escapeHTML(message) + '</p></article>';
+        qualityListEl.innerHTML = '<article class="memory-card"><p>' + escapeHTML(message) + '</p></article>';
+        cleanupListEl.innerHTML = '<article class="memory-card"><p>' + escapeHTML(message) + '</p></article>';
         diffListEl.innerHTML = '<article class="memory-card"><p>' + escapeHTML(message) + '</p></article>';
         liveListEl.innerHTML = '<article class="memory-card"><p>' + escapeHTML(message) + '</p></article>';
         graphEl.innerHTML = "";

@@ -24,67 +24,71 @@ func (s *Store) Forget(id string, actor memory.Actor, reason string) error {
 	}
 
 	return s.db.Update(func(tx *bbolt.Tx) error {
-		mem, err := loadMemoryForForget(tx, id)
-		if err != nil {
-			return err
-		}
-		cfg, err := loadSpaceConfig(tx, mem.SpaceID)
-		if err != nil {
-			return err
-		}
-		if err := ensureSpaceWritable(cfg); err != nil {
-			return err
-		}
-		if mem.IsForgotten {
-			return nil
-		}
-
-		wasLatest := mem.IsLatest
-		mem.IsForgotten = true
-		mem.IsLatest = false
-
-		if err := saveMemory(tx, mem); err != nil {
-			return err
-		}
-		if err := markOrphanedDeriveds(tx, mem.SpaceID, mem.ID); err != nil {
-			return err
-		}
-		now := time.Now().UTC()
-		if err := writeAuditEntry(tx, memory.AuditEntry{
-			Timestamp: now,
-			SpaceID:   mem.SpaceID,
-			Operation: "forget",
-			Actor:     actor,
-			MemoryIDs: []string{mem.ID},
-			Reason:    reason,
-		}); err != nil {
-			return err
-		}
-		if err := writeForgetRecord(tx, memory.ForgetRecord{
-			MemoryID:  mem.ID,
-			SpaceID:   mem.SpaceID,
-			Actor:     actor,
-			Reason:    reason,
-			Timestamp: now,
-		}); err != nil {
-			return err
-		}
-		if !wasLatest {
-			return nil
-		}
-
-		rootID := mem.ID
-		if mem.RootID != nil {
-			rootID = *mem.RootID
-		}
-		if err := deleteLatest(tx, rootID); err != nil {
-			return err
-		}
-		if err := removeSpaceMemoryID(tx, mem.SpaceID, mem.ID); err != nil {
-			return err
-		}
-		return incrementLiveKindCount(tx, mem.SpaceID, mem.Kind, -1)
+		return forgetInTx(tx, id, actor, reason)
 	})
+}
+
+func forgetInTx(tx *bbolt.Tx, id string, actor memory.Actor, reason string) error {
+	mem, err := loadMemoryForForget(tx, id)
+	if err != nil {
+		return err
+	}
+	cfg, err := loadSpaceConfig(tx, mem.SpaceID)
+	if err != nil {
+		return err
+	}
+	if err := ensureSpaceWritable(cfg); err != nil {
+		return err
+	}
+	if mem.IsForgotten {
+		return nil
+	}
+
+	wasLatest := mem.IsLatest
+	mem.IsForgotten = true
+	mem.IsLatest = false
+
+	if err := saveMemory(tx, mem); err != nil {
+		return err
+	}
+	if err := markOrphanedDeriveds(tx, mem.SpaceID, mem.ID); err != nil {
+		return err
+	}
+	now := time.Now().UTC()
+	if err := writeAuditEntry(tx, memory.AuditEntry{
+		Timestamp: now,
+		SpaceID:   mem.SpaceID,
+		Operation: "forget",
+		Actor:     actor,
+		MemoryIDs: []string{mem.ID},
+		Reason:    reason,
+	}); err != nil {
+		return err
+	}
+	if err := writeForgetRecord(tx, memory.ForgetRecord{
+		MemoryID:  mem.ID,
+		SpaceID:   mem.SpaceID,
+		Actor:     actor,
+		Reason:    reason,
+		Timestamp: now,
+	}); err != nil {
+		return err
+	}
+	if !wasLatest {
+		return nil
+	}
+
+	rootID := mem.ID
+	if mem.RootID != nil {
+		rootID = *mem.RootID
+	}
+	if err := deleteLatest(tx, rootID); err != nil {
+		return err
+	}
+	if err := removeSpaceMemoryID(tx, mem.SpaceID, mem.ID); err != nil {
+		return err
+	}
+	return incrementLiveKindCount(tx, mem.SpaceID, mem.Kind, -1)
 }
 
 func markOrphanedDeriveds(tx *bbolt.Tx, spaceID string, sourceID string) error {
