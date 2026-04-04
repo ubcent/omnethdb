@@ -1254,12 +1254,13 @@ var inspectorTemplate = template.Must(template.New("inspector").Parse(`<!doctype
 
     function renderCleanupPlan(plan) {
       const suggestions = plan?.duplicate_suggestions ?? [];
+      const command = plan?.suggested_forget_batch_command ?? "";
       if (suggestions.length === 0) {
         cleanupListEl.innerHTML = '<article class="memory-card"><p>No duplicate cleanup suggestions were produced at the current thresholds.</p></article>';
         cleanupStatus.textContent = "Ready";
         return;
       }
-      cleanupListEl.innerHTML = suggestions.map((item, index) =>
+      const cards = suggestions.map((item, index) =>
         '<article class="memory-card">' +
           '<header><h3>Duplicate cleanup suggestion ' + escapeHTML(index + 1) + '</h3></header>' +
           '<div class="memory-meta">' +
@@ -1268,7 +1269,16 @@ var inspectorTemplate = template.Must(template.New("inspector").Parse(`<!doctype
           '</div>' +
           '<p>' + escapeHTML(item.rationale) + '</p>' +
         '</article>'
-      ).join("");
+      );
+      if (command) {
+        cards.push(
+          '<article class="memory-card">' +
+            '<header><h3>Suggested CLI apply</h3></header>' +
+            '<pre>' + escapeHTML(command) + '</pre>' +
+          '</article>'
+        );
+      }
+      cleanupListEl.innerHTML = cards.join("");
       cleanupStatus.textContent = "Ready";
     }
 

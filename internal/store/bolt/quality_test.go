@@ -123,4 +123,7 @@ func TestBuildQualityCleanupPlanSuggestsKeepAndForgetIDs(t *testing.T) {
 	if len(plan.DuplicateSuggestions[0].ForgetIDs) != 1 || plan.DuplicateSuggestions[0].ForgetIDs[0] != first.ID {
 		t.Fatalf("expected lower-confidence memory to be forgotten, got %#v", plan.DuplicateSuggestions[0])
 	}
+	if plan.SuggestedForgetBatchCommand == "" {
+		t.Fatalf("expected suggested forget-batch command, got %#v", plan)
+	}
 }

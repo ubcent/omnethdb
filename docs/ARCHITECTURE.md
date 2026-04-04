@@ -203,7 +203,7 @@ A Derived memory that is simply invalidated (not replaced by a better synthesis)
 
 **Orphaned sources**: if a source memory is forgotten after a Derived memory is created, `Forget(sourceID)` sets `HasOrphanedSources=true` on all live Derived memories that reference it — atomically, in the same transaction. The Derived memory remains in the live corpus. It is returned by `Recall` and `GetProfile` with `HasOrphanedSources=true` visible in the record. Callers that want to suppress these set `ExcludeOrphanedDerives=true` in the request. `GetRelated(sourceID, Derives, 1)` surfaces the affected Derived memories for audit.
 
-The forgetting of a source does not automatically invalidate the synthesis. A pattern derived from three past incidents does not become false because one incident record was cleaned up. The `HasOrphanedSources` flag surfaces the condition; the agent or operator decides whether to revalidate or retire the Derived memory.
+The forgetting of a source does not automatically invalidate the synthesis. A pattern derived from three past incidents does not become false because one incident record was cleaned up. The `HasOrphanedSources` flag surfaces the condition; the agent or memory curator decides whether to revalidate or retire the Derived memory.
 
 **On retrieval**: Derives relations are NOT traversed during Recall or GetProfile. See API Contracts at a Glance.
 

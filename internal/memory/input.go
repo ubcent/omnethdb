@@ -106,9 +106,10 @@ type QualityCleanupPlanRequest struct {
 }
 
 type QualityCleanupPlanResult struct {
-	SpaceID              string                       `json:"space_id"`
-	GeneratedAt          time.Time                    `json:"generated_at"`
-	DuplicateSuggestions []DuplicateCleanupSuggestion `json:"duplicate_suggestions"`
+	SpaceID                     string                       `json:"space_id"`
+	GeneratedAt                 time.Time                    `json:"generated_at"`
+	DuplicateSuggestions        []DuplicateCleanupSuggestion `json:"duplicate_suggestions"`
+	SuggestedForgetBatchCommand string                       `json:"suggested_forget_batch_command,omitempty"`
 }
 
 type DuplicateCleanupSuggestion struct {

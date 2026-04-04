@@ -19,7 +19,7 @@ Tickets:
 - [M8-004.md](/Users/dmitrybondarchuk/Projects/my/omnethdb/docs/tickets/m8/M8-004.md)
 - [M8-005.md](/Users/dmitrybondarchuk/Projects/my/omnethdb/docs/tickets/m8/M8-005.md)
 
-These tickets form the first post-`v1` memory-quality and operator-control queue.
+These tickets form the first post-`v1` memory-quality and memory-curation-control queue.
 
 Current state:
 

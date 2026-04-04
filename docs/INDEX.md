@@ -132,4 +132,4 @@ If you are doing release validation:
 
 The planning, implementation, and release-closure stack for `v1` is complete.
 
-Post-`v1` follow-up planning now starts in [SPRINT_PLAN_M8.md](/Users/dmitrybondarchuk/Projects/my/omnethdb/docs/SPRINT_PLAN_M8.md), focused on memory quality, operator control, and embedding-assisted hygiene.
+Post-`v1` follow-up planning now starts in [SPRINT_PLAN_M8.md](/Users/dmitrybondarchuk/Projects/my/omnethdb/docs/SPRINT_PLAN_M8.md), focused on memory quality, memory curation control, and embedding-assisted hygiene.

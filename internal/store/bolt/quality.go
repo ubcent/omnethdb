@@ -3,6 +3,7 @@ package bolt
 import (
 	"cmp"
 	"sort"
+	"strings"
 	"time"
 
 	"omnethdb/internal/memory"
@@ -148,6 +149,7 @@ func (s *Store) BuildQualityCleanupPlan(req memory.QualityCleanupPlanRequest) (*
 			DuplicateGroup: group,
 		})
 	}
+	out.SuggestedForgetBatchCommand = buildSuggestedForgetBatchCommand(out.DuplicateSuggestions)
 	return out, nil
 }
 
@@ -310,4 +312,26 @@ func selectCleanupTargets(ids []string, byID map[string]memory.Memory) (string, 
 		forget = append(forget, mem.ID)
 	}
 	return keep, forget
+}
+
+func buildSuggestedForgetBatchCommand(items []memory.DuplicateCleanupSuggestion) string {
+	if len(items) == 0 {
+		return ""
+	}
+	ids := make([]string, 0)
+	seen := make(map[string]struct{})
+	for _, item := range items {
+		for _, id := range item.ForgetIDs {
+			if _, ok := seen[id]; ok {
+				continue
+			}
+			seen[id] = struct{}{}
+			ids = append(ids, id)
+		}
+	}
+	if len(ids) == 0 {
+		return ""
+	}
+	sort.Strings(ids)
+	return `omnethdb forget-batch --workspace . --ids ` + strings.Join(ids, ",") + ` --reason "duplicate cleanup"`
 }

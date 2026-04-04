@@ -58,6 +58,8 @@ func main() {
 		err = runQuality(os.Args[2:])
 	case "quality-plan":
 		err = runQualityPlan(os.Args[2:])
+	case "quality-report":
+		err = runQualityReport(os.Args[2:])
 	case "forget-batch":
 		err = runForgetBatch(os.Args[2:])
 	case "audit":
@@ -458,6 +460,7 @@ func runQuality(args []string) error {
 	topK := fs.Int("top-k-per-memory", 5, "top similar live candidates to inspect per live static memory")
 	maxDuplicateGroups := fs.Int("max-duplicate-groups", 8, "maximum duplicate groups to return")
 	maxUpdatePairs := fs.Int("max-update-pairs", 12, "maximum possible update pairs to return")
+	format := fs.String("format", "json", "output format: json|markdown")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
@@ -481,7 +484,15 @@ func runQuality(args []string) error {
 	if err != nil {
 		return err
 	}
-	return printJSON(result)
+	switch strings.TrimSpace(strings.ToLower(*format)) {
+	case "", "json":
+		return printJSON(result)
+	case "markdown", "md":
+		_, err := fmt.Fprintln(os.Stdout, renderQualityDiagnosticsMarkdown(*result))
+		return err
+	default:
+		return fmt.Errorf("unsupported --format %q", *format)
+	}
 }
 
 func runQualityPlan(args []string) error {
@@ -489,6 +500,7 @@ func runQualityPlan(args []string) error {
 	workspace := fs.String("workspace", defaultWorkspace, "workspace root")
 	spaceID := fs.String("space", "", "space id")
 	maxDuplicateActions := fs.Int("max-duplicate-actions", 8, "maximum duplicate cleanup suggestions to return")
+	format := fs.String("format", "json", "output format: json|markdown")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
@@ -510,7 +522,62 @@ func runQualityPlan(args []string) error {
 	if err != nil {
 		return err
 	}
-	return printJSON(result)
+	switch strings.TrimSpace(strings.ToLower(*format)) {
+	case "", "json":
+		return printJSON(result)
+	case "markdown", "md":
+		_, err := fmt.Fprintln(os.Stdout, renderQualityPlanMarkdown(*result))
+		return err
+	default:
+		return fmt.Errorf("unsupported --format %q", *format)
+	}
+}
+
+func runQualityReport(args []string) error {
+	fs := flag.NewFlagSet("quality-report", flag.ContinueOnError)
+	workspace := fs.String("workspace", defaultWorkspace, "workspace root")
+	spaceID := fs.String("space", "", "space id")
+	topK := fs.Int("top-k-per-memory", 5, "top similar live candidates to inspect per live static memory")
+	maxDuplicateGroups := fs.Int("max-duplicate-groups", 8, "maximum duplicate groups to return")
+	maxUpdatePairs := fs.Int("max-update-pairs", 12, "maximum possible update pairs to return")
+	maxDuplicateActions := fs.Int("max-duplicate-actions", 8, "maximum duplicate cleanup suggestions to return")
+	outPath := fs.String("out", "", "optional output file path for the markdown report")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	if strings.TrimSpace(*spaceID) == "" {
+		return errors.New("quality-report requires --space")
+	}
+
+	store, _, cfg, err := openCLIStore(*workspace)
+	if err != nil {
+		return err
+	}
+	defer store.Close()
+	ensureEmbedderForSpace(store, cfg, *spaceID)
+
+	diagnostics, err := store.GetQualityDiagnostics(omnethdb.QualityDiagnosticsRequest{
+		SpaceID:            *spaceID,
+		TopKPerMemory:      *topK,
+		MaxDuplicateGroups: *maxDuplicateGroups,
+		MaxUpdatePairs:     *maxUpdatePairs,
+	})
+	if err != nil {
+		return err
+	}
+	plan, err := store.BuildQualityCleanupPlan(omnethdb.QualityCleanupPlanRequest{
+		SpaceID:             *spaceID,
+		MaxDuplicateActions: *maxDuplicateActions,
+	})
+	if err != nil {
+		return err
+	}
+	report := renderQualityReportMarkdown(*diagnostics, *plan)
+	if strings.TrimSpace(*outPath) == "" {
+		_, err = fmt.Fprintln(os.Stdout, report)
+		return err
+	}
+	return os.WriteFile(*outPath, []byte(report), 0o644)
 }
 
 func runForgetBatch(args []string) error {
@@ -1015,8 +1082,9 @@ Commands:
   candidates raw cosine candidate search
   quality   inspect duplicate and update diagnostics for a space
   quality-plan build an advisory duplicate cleanup plan for a space
+  quality-report render diagnostics and cleanup plan together as markdown
   audit     inspect audit history
-  forget-batch forget multiple memories in one explicit operator action
+  forget-batch forget multiple memories in one explicit memory curation action
   export    render inspection exports
   migrate   migrate a space to a new embedder
   space     print persisted space config
@@ -1036,11 +1104,103 @@ Examples:
   omnethdb recall --workspace . --spaces repo:company/app --query pagination
   omnethdb candidates --workspace . --space repo:company/app --content "pagination"
   omnethdb quality --workspace . --space repo:company/app
+  omnethdb quality --workspace . --space repo:company/app --format markdown
   omnethdb quality-plan --workspace . --space repo:company/app
+  omnethdb quality-plan --workspace . --space repo:company/app --format markdown
+  omnethdb quality-report --workspace . --space repo:company/app
+  omnethdb quality-report --workspace . --space repo:company/app --out /tmp/quality-report.md
   omnethdb forget-batch --workspace . --ids mem-1,mem-2 --reason "duplicate cleanup"
   omnethdb export --workspace . --space repo:company/app --format summary-md
   omnethdb space diff-config --workspace . --space repo:company/app
   omnethdb serve --workspace . --addr :8080
   omnethdb serve-grpc --workspace . --addr :9090
 `)
+}
+
+func renderQualityPlanMarkdown(plan omnethdb.QualityCleanupPlanResult) string {
+	var b strings.Builder
+	b.WriteString("# Quality Cleanup Plan\n\n")
+	b.WriteString("Space: `" + plan.SpaceID + "`\n\n")
+	b.WriteString("Generated: `" + plan.GeneratedAt.Format(time.RFC3339) + "`\n\n")
+
+	if len(plan.DuplicateSuggestions) == 0 {
+		b.WriteString("No duplicate cleanup suggestions were produced.\n")
+		return b.String()
+	}
+
+	for i, item := range plan.DuplicateSuggestions {
+		b.WriteString(fmt.Sprintf("## Suggestion %d\n\n", i+1))
+		b.WriteString("- Keep: `" + item.KeepID + "`\n")
+		if len(item.ForgetIDs) > 0 {
+			b.WriteString("- Forget: `" + strings.Join(item.ForgetIDs, "`, `") + "`\n")
+		}
+		b.WriteString("- Why: " + item.Rationale + "\n")
+		if len(item.DuplicateGroup.Pairs) > 0 {
+			b.WriteString("- Pair scores:\n")
+			for _, pair := range item.DuplicateGroup.Pairs {
+				b.WriteString(fmt.Sprintf("  - `%s` <-> `%s` (%.2f)\n", pair.LeftID, pair.RightID, pair.Score))
+			}
+		}
+		b.WriteString("\n")
+	}
+
+	if plan.SuggestedForgetBatchCommand != "" {
+		b.WriteString("## Suggested Apply Command\n\n")
+		b.WriteString("```bash\n")
+		b.WriteString(plan.SuggestedForgetBatchCommand)
+		b.WriteString("\n```\n")
+	}
+
+	return b.String()
+}
+
+func renderQualityDiagnosticsMarkdown(result omnethdb.QualityDiagnosticsResult) string {
+	var b strings.Builder
+	b.WriteString("# Quality Diagnostics\n\n")
+	b.WriteString("Space: `" + result.SpaceID + "`\n\n")
+	b.WriteString("Generated: `" + result.GeneratedAt.Format(time.RFC3339) + "`\n\n")
+	b.WriteString(fmt.Sprintf("Live static memories: `%d`\n\n", result.LiveStaticCount))
+
+	if len(result.DuplicateGroups) == 0 && len(result.PossibleUpdates) == 0 {
+		b.WriteString("No duplicate clusters or possible update pairs crossed the current thresholds.\n")
+		return b.String()
+	}
+
+	if len(result.DuplicateGroups) > 0 {
+		b.WriteString("## Duplicate Clusters\n\n")
+		for i, group := range result.DuplicateGroups {
+			b.WriteString(fmt.Sprintf("### Cluster %d\n\n", i+1))
+			b.WriteString("- Memory IDs: `" + strings.Join(group.MemoryIDs, "`, `") + "`\n")
+			if len(group.Pairs) > 0 {
+				b.WriteString("- Pair scores:\n")
+				for _, pair := range group.Pairs {
+					b.WriteString(fmt.Sprintf("  - `%s` <-> `%s` (%.2f)\n", pair.LeftID, pair.RightID, pair.Score))
+				}
+			}
+			b.WriteString("\n")
+		}
+	}
+
+	if len(result.PossibleUpdates) > 0 {
+		b.WriteString("## Possible Update Pairs\n\n")
+		for _, pair := range result.PossibleUpdates {
+			b.WriteString(fmt.Sprintf("- `%s` <-> `%s` (%.2f)\n", pair.LeftID, pair.RightID, pair.Score))
+		}
+		b.WriteString("\n")
+	}
+
+	return b.String()
+}
+
+func renderQualityReportMarkdown(result omnethdb.QualityDiagnosticsResult, plan omnethdb.QualityCleanupPlanResult) string {
+	var b strings.Builder
+	b.WriteString("# Memory Quality Report\n\n")
+	b.WriteString("Space: `" + result.SpaceID + "`\n\n")
+	b.WriteString("Generated: `" + time.Now().UTC().Format(time.RFC3339) + "`\n\n")
+	b.WriteString("## Diagnostics\n\n")
+	b.WriteString(strings.TrimSpace(renderQualityDiagnosticsMarkdown(result)))
+	b.WriteString("\n\n## Cleanup Plan\n\n")
+	b.WriteString(strings.TrimSpace(renderQualityPlanMarkdown(plan)))
+	b.WriteString("\n")
+	return b.String()
 }

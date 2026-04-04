@@ -275,6 +275,9 @@ func TestHTTPAPIExposesQualityDiagnostics(t *testing.T) {
 	if len(cleanupPlan.DuplicateSuggestions) == 0 {
 		t.Fatalf("expected duplicate cleanup suggestions, got %#v", cleanupPlan)
 	}
+	if cleanupPlan.SuggestedForgetBatchCommand == "" {
+		t.Fatalf("expected suggested forget-batch command, got %#v", cleanupPlan)
+	}
 }
 
 func TestHTTPAPIExposesBatchForget(t *testing.T) {

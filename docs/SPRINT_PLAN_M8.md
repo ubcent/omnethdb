@@ -6,7 +6,7 @@ Milestone 8 focus:
 
 - memory quality control under real agent usage
 - embedding-assisted write hygiene
-- operator-visible diagnostics for duplicate and churn risk
+- diagnostics for memory curators on duplicate and churn risk
 - safer config application for long-lived spaces
 
 Use this together with:
@@ -19,7 +19,7 @@ Use this together with:
 
 ## Sprint Goal
 
-Make OmnethDB resilient to real agent memory load by improving write quality, operator control, and explainable diagnostics without weakening the architecture.
+Make OmnethDB resilient to real agent memory load by improving write quality, memory curation control, and explainable diagnostics without weakening the architecture.
 
 At the end of this sprint, the system should support:
 
@@ -75,7 +75,7 @@ Expected outputs:
 ### Workstream B. Quality Diagnostics And Evaluation
 
 Objective:
-Make memory quality measurable for both operators and automated regression checks.
+Make memory quality measurable for both memory curators and automated regression checks.
 
 Tasks:
 
@@ -136,7 +136,7 @@ Milestone 8 sprint is done only when all of the following are true:
 1. A new memory candidate can be linted against the live corpus for duplicate and update risk.
 2. Similarity signals are advisory and do not create hidden lineage or truth claims.
 3. Embedding-quality evaluation is runnable and produces repeatable metrics.
-4. Operators can inspect likely duplicate clusters and update candidates in the inspector.
+4. Memory curators can inspect likely duplicate clusters and update candidates in the inspector.
 5. Persisted spaces can reconcile runtime config changes through explicit validation and apply flows.
 6. Tests demonstrate that memory quality tooling does not leak historical or graph behavior into hot-path retrieval.
 
@@ -187,7 +187,7 @@ Mitigation:
 Before closing the sprint, review:
 
 - does similarity lint only advise, or is it secretly changing behavior?
-- can operators distinguish duplicate hints from true lineage?
+- can memory curators distinguish duplicate hints from true lineage?
 - do eval metrics catch both duplicate misses and false positives?
 - does inspector quality output help clean up memory, or only create noise?
 - can config changes be reconciled safely without wiping persisted state?
