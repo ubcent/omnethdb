@@ -323,6 +323,8 @@ The gRPC surface mirrors the core store contract:
 - `Recall`
 - `GetProfile`
 - `FindCandidates`
+- `SynthesisCandidates`
+- `PromotionSuggestions`
 - `Forget`
 - `Revive`
 - `GetLineage`

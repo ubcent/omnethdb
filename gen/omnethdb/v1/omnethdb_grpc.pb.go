@@ -19,20 +19,22 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	OmnethDB_Health_FullMethodName            = "/omnethdb.v1.OmnethDB/Health"
-	OmnethDB_GetRuntimeConfig_FullMethodName  = "/omnethdb.v1.OmnethDB/GetRuntimeConfig"
-	OmnethDB_InitSpace_FullMethodName         = "/omnethdb.v1.OmnethDB/InitSpace"
-	OmnethDB_GetSpaceConfig_FullMethodName    = "/omnethdb.v1.OmnethDB/GetSpaceConfig"
-	OmnethDB_Remember_FullMethodName          = "/omnethdb.v1.OmnethDB/Remember"
-	OmnethDB_Recall_FullMethodName            = "/omnethdb.v1.OmnethDB/Recall"
-	OmnethDB_GetProfile_FullMethodName        = "/omnethdb.v1.OmnethDB/GetProfile"
-	OmnethDB_FindCandidates_FullMethodName    = "/omnethdb.v1.OmnethDB/FindCandidates"
-	OmnethDB_Forget_FullMethodName            = "/omnethdb.v1.OmnethDB/Forget"
-	OmnethDB_Revive_FullMethodName            = "/omnethdb.v1.OmnethDB/Revive"
-	OmnethDB_GetLineage_FullMethodName        = "/omnethdb.v1.OmnethDB/GetLineage"
-	OmnethDB_GetRelated_FullMethodName        = "/omnethdb.v1.OmnethDB/GetRelated"
-	OmnethDB_GetAuditLog_FullMethodName       = "/omnethdb.v1.OmnethDB/GetAuditLog"
-	OmnethDB_MigrateEmbeddings_FullMethodName = "/omnethdb.v1.OmnethDB/MigrateEmbeddings"
+	OmnethDB_Health_FullMethodName               = "/omnethdb.v1.OmnethDB/Health"
+	OmnethDB_GetRuntimeConfig_FullMethodName     = "/omnethdb.v1.OmnethDB/GetRuntimeConfig"
+	OmnethDB_InitSpace_FullMethodName            = "/omnethdb.v1.OmnethDB/InitSpace"
+	OmnethDB_GetSpaceConfig_FullMethodName       = "/omnethdb.v1.OmnethDB/GetSpaceConfig"
+	OmnethDB_Remember_FullMethodName             = "/omnethdb.v1.OmnethDB/Remember"
+	OmnethDB_Recall_FullMethodName               = "/omnethdb.v1.OmnethDB/Recall"
+	OmnethDB_GetProfile_FullMethodName           = "/omnethdb.v1.OmnethDB/GetProfile"
+	OmnethDB_FindCandidates_FullMethodName       = "/omnethdb.v1.OmnethDB/FindCandidates"
+	OmnethDB_SynthesisCandidates_FullMethodName  = "/omnethdb.v1.OmnethDB/SynthesisCandidates"
+	OmnethDB_PromotionSuggestions_FullMethodName = "/omnethdb.v1.OmnethDB/PromotionSuggestions"
+	OmnethDB_Forget_FullMethodName               = "/omnethdb.v1.OmnethDB/Forget"
+	OmnethDB_Revive_FullMethodName               = "/omnethdb.v1.OmnethDB/Revive"
+	OmnethDB_GetLineage_FullMethodName           = "/omnethdb.v1.OmnethDB/GetLineage"
+	OmnethDB_GetRelated_FullMethodName           = "/omnethdb.v1.OmnethDB/GetRelated"
+	OmnethDB_GetAuditLog_FullMethodName          = "/omnethdb.v1.OmnethDB/GetAuditLog"
+	OmnethDB_MigrateEmbeddings_FullMethodName    = "/omnethdb.v1.OmnethDB/MigrateEmbeddings"
 )
 
 // OmnethDBClient is the client API for OmnethDB service.
@@ -47,6 +49,8 @@ type OmnethDBClient interface {
 	Recall(ctx context.Context, in *RecallRequest, opts ...grpc.CallOption) (*RecallResponse, error)
 	GetProfile(ctx context.Context, in *GetProfileRequest, opts ...grpc.CallOption) (*MemoryProfile, error)
 	FindCandidates(ctx context.Context, in *FindCandidatesRequest, opts ...grpc.CallOption) (*RecallResponse, error)
+	SynthesisCandidates(ctx context.Context, in *SynthesisCandidatesRequest, opts ...grpc.CallOption) (*SynthesisCandidatesResponse, error)
+	PromotionSuggestions(ctx context.Context, in *PromotionSuggestionsRequest, opts ...grpc.CallOption) (*PromotionSuggestionsResponse, error)
 	Forget(ctx context.Context, in *ForgetRequest, opts ...grpc.CallOption) (*StatusResponse, error)
 	Revive(ctx context.Context, in *ReviveRequest, opts ...grpc.CallOption) (*Memory, error)
 	GetLineage(ctx context.Context, in *GetLineageRequest, opts ...grpc.CallOption) (*LineageResponse, error)
@@ -143,6 +147,26 @@ func (c *omnethDBClient) FindCandidates(ctx context.Context, in *FindCandidatesR
 	return out, nil
 }
 
+func (c *omnethDBClient) SynthesisCandidates(ctx context.Context, in *SynthesisCandidatesRequest, opts ...grpc.CallOption) (*SynthesisCandidatesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SynthesisCandidatesResponse)
+	err := c.cc.Invoke(ctx, OmnethDB_SynthesisCandidates_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *omnethDBClient) PromotionSuggestions(ctx context.Context, in *PromotionSuggestionsRequest, opts ...grpc.CallOption) (*PromotionSuggestionsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(PromotionSuggestionsResponse)
+	err := c.cc.Invoke(ctx, OmnethDB_PromotionSuggestions_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *omnethDBClient) Forget(ctx context.Context, in *ForgetRequest, opts ...grpc.CallOption) (*StatusResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(StatusResponse)
@@ -215,6 +239,8 @@ type OmnethDBServer interface {
 	Recall(context.Context, *RecallRequest) (*RecallResponse, error)
 	GetProfile(context.Context, *GetProfileRequest) (*MemoryProfile, error)
 	FindCandidates(context.Context, *FindCandidatesRequest) (*RecallResponse, error)
+	SynthesisCandidates(context.Context, *SynthesisCandidatesRequest) (*SynthesisCandidatesResponse, error)
+	PromotionSuggestions(context.Context, *PromotionSuggestionsRequest) (*PromotionSuggestionsResponse, error)
 	Forget(context.Context, *ForgetRequest) (*StatusResponse, error)
 	Revive(context.Context, *ReviveRequest) (*Memory, error)
 	GetLineage(context.Context, *GetLineageRequest) (*LineageResponse, error)
@@ -254,6 +280,12 @@ func (UnimplementedOmnethDBServer) GetProfile(context.Context, *GetProfileReques
 }
 func (UnimplementedOmnethDBServer) FindCandidates(context.Context, *FindCandidatesRequest) (*RecallResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method FindCandidates not implemented")
+}
+func (UnimplementedOmnethDBServer) SynthesisCandidates(context.Context, *SynthesisCandidatesRequest) (*SynthesisCandidatesResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SynthesisCandidates not implemented")
+}
+func (UnimplementedOmnethDBServer) PromotionSuggestions(context.Context, *PromotionSuggestionsRequest) (*PromotionSuggestionsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method PromotionSuggestions not implemented")
 }
 func (UnimplementedOmnethDBServer) Forget(context.Context, *ForgetRequest) (*StatusResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Forget not implemented")
@@ -438,6 +470,42 @@ func _OmnethDB_FindCandidates_Handler(srv interface{}, ctx context.Context, dec 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _OmnethDB_SynthesisCandidates_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SynthesisCandidatesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(OmnethDBServer).SynthesisCandidates(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: OmnethDB_SynthesisCandidates_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(OmnethDBServer).SynthesisCandidates(ctx, req.(*SynthesisCandidatesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _OmnethDB_PromotionSuggestions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PromotionSuggestionsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(OmnethDBServer).PromotionSuggestions(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: OmnethDB_PromotionSuggestions_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(OmnethDBServer).PromotionSuggestions(ctx, req.(*PromotionSuggestionsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _OmnethDB_Forget_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ForgetRequest)
 	if err := dec(in); err != nil {
@@ -584,6 +652,14 @@ var OmnethDB_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "FindCandidates",
 			Handler:    _OmnethDB_FindCandidates_Handler,
+		},
+		{
+			MethodName: "SynthesisCandidates",
+			Handler:    _OmnethDB_SynthesisCandidates_Handler,
+		},
+		{
+			MethodName: "PromotionSuggestions",
+			Handler:    _OmnethDB_PromotionSuggestions_Handler,
 		},
 		{
 			MethodName: "Forget",

@@ -16,6 +16,8 @@ service OmnethDB {
   rpc Recall(RecallRequest) returns (RecallResponse);
   rpc GetProfile(GetProfileRequest) returns (MemoryProfile);
   rpc FindCandidates(FindCandidatesRequest) returns (RecallResponse);
+  rpc SynthesisCandidates(SynthesisCandidatesRequest) returns (SynthesisCandidatesResponse);
+  rpc PromotionSuggestions(PromotionSuggestionsRequest) returns (PromotionSuggestionsResponse);
   rpc Forget(ForgetRequest) returns (StatusResponse);
   rpc Revive(ReviveRequest) returns (Memory);
   rpc GetLineage(GetLineageRequest) returns (LineageResponse);
@@ -213,6 +215,98 @@ message FindCandidatesRequest {
   int32 top_k = 3;
   bool include_superseded = 4;
   bool include_forgotten = 5;
+}
+
+message SynthesisCandidatesRequest {
+  string space_id = 1;
+  int32 top_k_per_memory = 2;
+  int32 max_candidates = 3;
+  int32 min_cluster_size = 4;
+  float min_pair_score = 5;
+  bool include_superseded = 6;
+  bool include_forgotten = 7;
+}
+
+message SynthesisCandidateMember {
+  string memory_id = 1;
+  string space_id = 2;
+  string actor_id = 3;
+  google.protobuf.Timestamp created_at = 4;
+  string content = 5;
+  bool is_latest = 6;
+  bool is_forgotten = 7;
+}
+
+message SynthesisCandidate {
+  string candidate_id = 1;
+  bool advisory_only = 2;
+  repeated string reason_codes = 3;
+  string suggested_action = 4;
+  float review_score = 5;
+  int32 cluster_size = 6;
+  int32 distinct_actors = 7;
+  int32 distinct_spaces = 8;
+  google.protobuf.Timestamp time_span_start = 9;
+  google.protobuf.Timestamp time_span_end = 10;
+  float mean_similarity = 11;
+  float min_similarity = 12;
+  float max_similarity = 13;
+  repeated SynthesisCandidateMember members = 14;
+}
+
+message SynthesisCandidatesResponse {
+  string space_id = 1;
+  google.protobuf.Timestamp generated_at = 2;
+  int32 live_episodic_count = 3;
+  repeated SynthesisCandidate candidates = 4;
+}
+
+message PromotionSuggestionsRequest {
+  string space_id = 1;
+  int32 top_k_per_memory = 2;
+  int32 max_suggestions = 3;
+  int32 min_observation_count = 4;
+  int32 min_distinct_actors = 5;
+  int32 min_distinct_windows = 6;
+  float min_cumulative_score = 7;
+  float min_pair_score = 8;
+  bool include_superseded = 9;
+  bool include_forgotten = 10;
+}
+
+message PromotionSuggestionMemory {
+  string memory_id = 1;
+  string space_id = 2;
+  string actor_id = 3;
+  google.protobuf.Timestamp created_at = 4;
+  string content = 5;
+  bool is_latest = 6;
+  bool is_forgotten = 7;
+}
+
+message PromotionSuggestion {
+  string memory_id = 1;
+  bool advisory_only = 2;
+  repeated string reason_codes = 3;
+  string suggested_action = 4;
+  int32 observation_count = 5;
+  int32 distinct_time_windows = 6;
+  int32 distinct_actors = 7;
+  float cumulative_score = 8;
+  float latest_score = 9;
+  google.protobuf.Timestamp first_seen_at = 10;
+  google.protobuf.Timestamp last_seen_at = 11;
+  float churn_risk = 12;
+  float contradiction_risk = 13;
+  string explanation = 14;
+  PromotionSuggestionMemory memory = 15;
+}
+
+message PromotionSuggestionsResponse {
+  string space_id = 1;
+  google.protobuf.Timestamp generated_at = 2;
+  int32 live_episodic_count = 3;
+  repeated PromotionSuggestion suggestions = 4;
 }
 
 message ForgetRequest {

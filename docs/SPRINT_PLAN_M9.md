@@ -112,7 +112,8 @@ Expected outputs:
 Current status:
 
 - `M9-003` verification is complete
-- regression coverage now covers `Recall`, `GetProfile`, live-only defaults, widened scope flags, downgrade behavior, audit non-mutation, and relation or lineage non-mutation
+- regression coverage now covers `Recall`, `GetProfile`, live-only defaults, widened scope flags, broader ambiguous or false-positive downgrade behavior, audit non-mutation, and relation or lineage non-mutation
+- transport parity now also includes gRPC exposure for `SynthesisCandidates` and `PromotionSuggestions`, verified against the shared store contract
 
 ## Suggested Execution Order
 

@@ -124,6 +124,43 @@ func (s *Server) FindCandidates(_ context.Context, req *omnethdbv1.FindCandidate
 	return &omnethdbv1.RecallResponse{Memories: scoredMemoriesToProto(results)}, nil
 }
 
+func (s *Server) SynthesisCandidates(_ context.Context, req *omnethdbv1.SynthesisCandidatesRequest) (*omnethdbv1.SynthesisCandidatesResponse, error) {
+	s.ensureEmbedderForSpace(req.GetSpaceId())
+	result, err := s.store.GetSynthesisCandidates(omnethdb.SynthesisCandidatesRequest{
+		SpaceID:           req.GetSpaceId(),
+		TopKPerMemory:     int(req.GetTopKPerMemory()),
+		MaxCandidates:     int(req.GetMaxCandidates()),
+		MinClusterSize:    int(req.GetMinClusterSize()),
+		MinPairScore:      req.GetMinPairScore(),
+		IncludeSuperseded: req.GetIncludeSuperseded(),
+		IncludeForgotten:  req.GetIncludeForgotten(),
+	})
+	if err != nil {
+		return nil, mapError(err)
+	}
+	return synthesisCandidatesResultToProto(result), nil
+}
+
+func (s *Server) PromotionSuggestions(_ context.Context, req *omnethdbv1.PromotionSuggestionsRequest) (*omnethdbv1.PromotionSuggestionsResponse, error) {
+	s.ensureEmbedderForSpace(req.GetSpaceId())
+	result, err := s.store.GetPromotionSuggestions(omnethdb.PromotionSuggestionsRequest{
+		SpaceID:             req.GetSpaceId(),
+		TopKPerMemory:       int(req.GetTopKPerMemory()),
+		MaxSuggestions:      int(req.GetMaxSuggestions()),
+		MinObservationCount: int(req.GetMinObservationCount()),
+		MinDistinctActors:   int(req.GetMinDistinctActors()),
+		MinDistinctWindows:  int(req.GetMinDistinctWindows()),
+		MinCumulativeScore:  req.GetMinCumulativeScore(),
+		MinPairScore:        req.GetMinPairScore(),
+		IncludeSuperseded:   req.GetIncludeSuperseded(),
+		IncludeForgotten:    req.GetIncludeForgotten(),
+	})
+	if err != nil {
+		return nil, mapError(err)
+	}
+	return promotionSuggestionsResultToProto(result), nil
+}
+
 func (s *Server) Forget(_ context.Context, req *omnethdbv1.ForgetRequest) (*omnethdbv1.StatusResponse, error) {
 	if err := s.store.Forget(req.GetId(), actorFromProto(req.GetActor()), req.GetReason()); err != nil {
 		return nil, mapError(err)
@@ -425,6 +462,105 @@ func scoredMemoriesToProto(memories []omnethdb.ScoredMemory) []*omnethdbv1.Score
 		})
 	}
 	return out
+}
+
+func synthesisCandidatesResultToProto(result *omnethdb.SynthesisCandidatesResult) *omnethdbv1.SynthesisCandidatesResponse {
+	if result == nil {
+		return nil
+	}
+	return &omnethdbv1.SynthesisCandidatesResponse{
+		SpaceId:           result.SpaceID,
+		GeneratedAt:       timestamppb.New(result.GeneratedAt),
+		LiveEpisodicCount: int32(result.LiveEpisodicCount),
+		Candidates:        synthesisCandidatesToProto(result.Candidates),
+	}
+}
+
+func synthesisCandidatesToProto(items []omnethdb.SynthesisCandidate) []*omnethdbv1.SynthesisCandidate {
+	out := make([]*omnethdbv1.SynthesisCandidate, 0, len(items))
+	for _, item := range items {
+		out = append(out, &omnethdbv1.SynthesisCandidate{
+			CandidateId:     item.CandidateID,
+			AdvisoryOnly:    item.AdvisoryOnly,
+			ReasonCodes:     append([]string(nil), item.ReasonCodes...),
+			SuggestedAction: item.SuggestedAction,
+			ReviewScore:     item.ReviewScore,
+			ClusterSize:     int32(item.ClusterSize),
+			DistinctActors:  int32(item.DistinctActors),
+			DistinctSpaces:  int32(item.DistinctSpaces),
+			TimeSpanStart:   timestamppb.New(item.TimeSpanStart),
+			TimeSpanEnd:     timestamppb.New(item.TimeSpanEnd),
+			MeanSimilarity:  item.MeanSimilarity,
+			MinSimilarity:   item.MinSimilarity,
+			MaxSimilarity:   item.MaxSimilarity,
+			Members:         synthesisCandidateMembersToProto(item.Members),
+		})
+	}
+	return out
+}
+
+func synthesisCandidateMembersToProto(items []omnethdb.SynthesisCandidateMember) []*omnethdbv1.SynthesisCandidateMember {
+	out := make([]*omnethdbv1.SynthesisCandidateMember, 0, len(items))
+	for _, item := range items {
+		out = append(out, &omnethdbv1.SynthesisCandidateMember{
+			MemoryId:    item.MemoryID,
+			SpaceId:     item.SpaceID,
+			ActorId:     item.ActorID,
+			CreatedAt:   timestamppb.New(item.CreatedAt),
+			Content:     item.Content,
+			IsLatest:    item.IsLatest,
+			IsForgotten: item.IsForgotten,
+		})
+	}
+	return out
+}
+
+func promotionSuggestionsResultToProto(result *omnethdb.PromotionSuggestionsResult) *omnethdbv1.PromotionSuggestionsResponse {
+	if result == nil {
+		return nil
+	}
+	return &omnethdbv1.PromotionSuggestionsResponse{
+		SpaceId:           result.SpaceID,
+		GeneratedAt:       timestamppb.New(result.GeneratedAt),
+		LiveEpisodicCount: int32(result.LiveEpisodicCount),
+		Suggestions:       promotionSuggestionsToProto(result.Suggestions),
+	}
+}
+
+func promotionSuggestionsToProto(items []omnethdb.PromotionSuggestion) []*omnethdbv1.PromotionSuggestion {
+	out := make([]*omnethdbv1.PromotionSuggestion, 0, len(items))
+	for _, item := range items {
+		out = append(out, &omnethdbv1.PromotionSuggestion{
+			MemoryId:            item.MemoryID,
+			AdvisoryOnly:        item.AdvisoryOnly,
+			ReasonCodes:         append([]string(nil), item.ReasonCodes...),
+			SuggestedAction:     item.SuggestedAction,
+			ObservationCount:    int32(item.ObservationCount),
+			DistinctTimeWindows: int32(item.DistinctTimeWindows),
+			DistinctActors:      int32(item.DistinctActors),
+			CumulativeScore:     item.CumulativeScore,
+			LatestScore:         item.LatestScore,
+			FirstSeenAt:         timestamppb.New(item.FirstSeenAt),
+			LastSeenAt:          timestamppb.New(item.LastSeenAt),
+			ChurnRisk:           item.ChurnRisk,
+			ContradictionRisk:   item.ContradictionRisk,
+			Explanation:         item.Explanation,
+			Memory:              promotionSuggestionMemoryToProto(item.Memory),
+		})
+	}
+	return out
+}
+
+func promotionSuggestionMemoryToProto(item omnethdb.PromotionSuggestionMemory) *omnethdbv1.PromotionSuggestionMemory {
+	return &omnethdbv1.PromotionSuggestionMemory{
+		MemoryId:    item.MemoryID,
+		SpaceId:     item.SpaceID,
+		ActorId:     item.ActorID,
+		CreatedAt:   timestamppb.New(item.CreatedAt),
+		Content:     item.Content,
+		IsLatest:    item.IsLatest,
+		IsForgotten: item.IsForgotten,
+	}
 }
 
 func spaceConfigToProto(cfg *omnethdb.SpaceConfig) *omnethdbv1.SpaceConfig {

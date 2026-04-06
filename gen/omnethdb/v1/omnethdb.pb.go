@@ -1846,6 +1846,838 @@ func (x *FindCandidatesRequest) GetIncludeForgotten() bool {
 	return false
 }
 
+type SynthesisCandidatesRequest struct {
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	SpaceId           string                 `protobuf:"bytes,1,opt,name=space_id,json=spaceId,proto3" json:"space_id,omitempty"`
+	TopKPerMemory     int32                  `protobuf:"varint,2,opt,name=top_k_per_memory,json=topKPerMemory,proto3" json:"top_k_per_memory,omitempty"`
+	MaxCandidates     int32                  `protobuf:"varint,3,opt,name=max_candidates,json=maxCandidates,proto3" json:"max_candidates,omitempty"`
+	MinClusterSize    int32                  `protobuf:"varint,4,opt,name=min_cluster_size,json=minClusterSize,proto3" json:"min_cluster_size,omitempty"`
+	MinPairScore      float32                `protobuf:"fixed32,5,opt,name=min_pair_score,json=minPairScore,proto3" json:"min_pair_score,omitempty"`
+	IncludeSuperseded bool                   `protobuf:"varint,6,opt,name=include_superseded,json=includeSuperseded,proto3" json:"include_superseded,omitempty"`
+	IncludeForgotten  bool                   `protobuf:"varint,7,opt,name=include_forgotten,json=includeForgotten,proto3" json:"include_forgotten,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
+}
+
+func (x *SynthesisCandidatesRequest) Reset() {
+	*x = SynthesisCandidatesRequest{}
+	mi := &file_omnethdb_v1_omnethdb_proto_msgTypes[23]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SynthesisCandidatesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SynthesisCandidatesRequest) ProtoMessage() {}
+
+func (x *SynthesisCandidatesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_omnethdb_v1_omnethdb_proto_msgTypes[23]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SynthesisCandidatesRequest.ProtoReflect.Descriptor instead.
+func (*SynthesisCandidatesRequest) Descriptor() ([]byte, []int) {
+	return file_omnethdb_v1_omnethdb_proto_rawDescGZIP(), []int{23}
+}
+
+func (x *SynthesisCandidatesRequest) GetSpaceId() string {
+	if x != nil {
+		return x.SpaceId
+	}
+	return ""
+}
+
+func (x *SynthesisCandidatesRequest) GetTopKPerMemory() int32 {
+	if x != nil {
+		return x.TopKPerMemory
+	}
+	return 0
+}
+
+func (x *SynthesisCandidatesRequest) GetMaxCandidates() int32 {
+	if x != nil {
+		return x.MaxCandidates
+	}
+	return 0
+}
+
+func (x *SynthesisCandidatesRequest) GetMinClusterSize() int32 {
+	if x != nil {
+		return x.MinClusterSize
+	}
+	return 0
+}
+
+func (x *SynthesisCandidatesRequest) GetMinPairScore() float32 {
+	if x != nil {
+		return x.MinPairScore
+	}
+	return 0
+}
+
+func (x *SynthesisCandidatesRequest) GetIncludeSuperseded() bool {
+	if x != nil {
+		return x.IncludeSuperseded
+	}
+	return false
+}
+
+func (x *SynthesisCandidatesRequest) GetIncludeForgotten() bool {
+	if x != nil {
+		return x.IncludeForgotten
+	}
+	return false
+}
+
+type SynthesisCandidateMember struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	MemoryId      string                 `protobuf:"bytes,1,opt,name=memory_id,json=memoryId,proto3" json:"memory_id,omitempty"`
+	SpaceId       string                 `protobuf:"bytes,2,opt,name=space_id,json=spaceId,proto3" json:"space_id,omitempty"`
+	ActorId       string                 `protobuf:"bytes,3,opt,name=actor_id,json=actorId,proto3" json:"actor_id,omitempty"`
+	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	Content       string                 `protobuf:"bytes,5,opt,name=content,proto3" json:"content,omitempty"`
+	IsLatest      bool                   `protobuf:"varint,6,opt,name=is_latest,json=isLatest,proto3" json:"is_latest,omitempty"`
+	IsForgotten   bool                   `protobuf:"varint,7,opt,name=is_forgotten,json=isForgotten,proto3" json:"is_forgotten,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SynthesisCandidateMember) Reset() {
+	*x = SynthesisCandidateMember{}
+	mi := &file_omnethdb_v1_omnethdb_proto_msgTypes[24]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SynthesisCandidateMember) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SynthesisCandidateMember) ProtoMessage() {}
+
+func (x *SynthesisCandidateMember) ProtoReflect() protoreflect.Message {
+	mi := &file_omnethdb_v1_omnethdb_proto_msgTypes[24]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SynthesisCandidateMember.ProtoReflect.Descriptor instead.
+func (*SynthesisCandidateMember) Descriptor() ([]byte, []int) {
+	return file_omnethdb_v1_omnethdb_proto_rawDescGZIP(), []int{24}
+}
+
+func (x *SynthesisCandidateMember) GetMemoryId() string {
+	if x != nil {
+		return x.MemoryId
+	}
+	return ""
+}
+
+func (x *SynthesisCandidateMember) GetSpaceId() string {
+	if x != nil {
+		return x.SpaceId
+	}
+	return ""
+}
+
+func (x *SynthesisCandidateMember) GetActorId() string {
+	if x != nil {
+		return x.ActorId
+	}
+	return ""
+}
+
+func (x *SynthesisCandidateMember) GetCreatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return nil
+}
+
+func (x *SynthesisCandidateMember) GetContent() string {
+	if x != nil {
+		return x.Content
+	}
+	return ""
+}
+
+func (x *SynthesisCandidateMember) GetIsLatest() bool {
+	if x != nil {
+		return x.IsLatest
+	}
+	return false
+}
+
+func (x *SynthesisCandidateMember) GetIsForgotten() bool {
+	if x != nil {
+		return x.IsForgotten
+	}
+	return false
+}
+
+type SynthesisCandidate struct {
+	state           protoimpl.MessageState      `protogen:"open.v1"`
+	CandidateId     string                      `protobuf:"bytes,1,opt,name=candidate_id,json=candidateId,proto3" json:"candidate_id,omitempty"`
+	AdvisoryOnly    bool                        `protobuf:"varint,2,opt,name=advisory_only,json=advisoryOnly,proto3" json:"advisory_only,omitempty"`
+	ReasonCodes     []string                    `protobuf:"bytes,3,rep,name=reason_codes,json=reasonCodes,proto3" json:"reason_codes,omitempty"`
+	SuggestedAction string                      `protobuf:"bytes,4,opt,name=suggested_action,json=suggestedAction,proto3" json:"suggested_action,omitempty"`
+	ReviewScore     float32                     `protobuf:"fixed32,5,opt,name=review_score,json=reviewScore,proto3" json:"review_score,omitempty"`
+	ClusterSize     int32                       `protobuf:"varint,6,opt,name=cluster_size,json=clusterSize,proto3" json:"cluster_size,omitempty"`
+	DistinctActors  int32                       `protobuf:"varint,7,opt,name=distinct_actors,json=distinctActors,proto3" json:"distinct_actors,omitempty"`
+	DistinctSpaces  int32                       `protobuf:"varint,8,opt,name=distinct_spaces,json=distinctSpaces,proto3" json:"distinct_spaces,omitempty"`
+	TimeSpanStart   *timestamppb.Timestamp      `protobuf:"bytes,9,opt,name=time_span_start,json=timeSpanStart,proto3" json:"time_span_start,omitempty"`
+	TimeSpanEnd     *timestamppb.Timestamp      `protobuf:"bytes,10,opt,name=time_span_end,json=timeSpanEnd,proto3" json:"time_span_end,omitempty"`
+	MeanSimilarity  float32                     `protobuf:"fixed32,11,opt,name=mean_similarity,json=meanSimilarity,proto3" json:"mean_similarity,omitempty"`
+	MinSimilarity   float32                     `protobuf:"fixed32,12,opt,name=min_similarity,json=minSimilarity,proto3" json:"min_similarity,omitempty"`
+	MaxSimilarity   float32                     `protobuf:"fixed32,13,opt,name=max_similarity,json=maxSimilarity,proto3" json:"max_similarity,omitempty"`
+	Members         []*SynthesisCandidateMember `protobuf:"bytes,14,rep,name=members,proto3" json:"members,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *SynthesisCandidate) Reset() {
+	*x = SynthesisCandidate{}
+	mi := &file_omnethdb_v1_omnethdb_proto_msgTypes[25]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SynthesisCandidate) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SynthesisCandidate) ProtoMessage() {}
+
+func (x *SynthesisCandidate) ProtoReflect() protoreflect.Message {
+	mi := &file_omnethdb_v1_omnethdb_proto_msgTypes[25]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SynthesisCandidate.ProtoReflect.Descriptor instead.
+func (*SynthesisCandidate) Descriptor() ([]byte, []int) {
+	return file_omnethdb_v1_omnethdb_proto_rawDescGZIP(), []int{25}
+}
+
+func (x *SynthesisCandidate) GetCandidateId() string {
+	if x != nil {
+		return x.CandidateId
+	}
+	return ""
+}
+
+func (x *SynthesisCandidate) GetAdvisoryOnly() bool {
+	if x != nil {
+		return x.AdvisoryOnly
+	}
+	return false
+}
+
+func (x *SynthesisCandidate) GetReasonCodes() []string {
+	if x != nil {
+		return x.ReasonCodes
+	}
+	return nil
+}
+
+func (x *SynthesisCandidate) GetSuggestedAction() string {
+	if x != nil {
+		return x.SuggestedAction
+	}
+	return ""
+}
+
+func (x *SynthesisCandidate) GetReviewScore() float32 {
+	if x != nil {
+		return x.ReviewScore
+	}
+	return 0
+}
+
+func (x *SynthesisCandidate) GetClusterSize() int32 {
+	if x != nil {
+		return x.ClusterSize
+	}
+	return 0
+}
+
+func (x *SynthesisCandidate) GetDistinctActors() int32 {
+	if x != nil {
+		return x.DistinctActors
+	}
+	return 0
+}
+
+func (x *SynthesisCandidate) GetDistinctSpaces() int32 {
+	if x != nil {
+		return x.DistinctSpaces
+	}
+	return 0
+}
+
+func (x *SynthesisCandidate) GetTimeSpanStart() *timestamppb.Timestamp {
+	if x != nil {
+		return x.TimeSpanStart
+	}
+	return nil
+}
+
+func (x *SynthesisCandidate) GetTimeSpanEnd() *timestamppb.Timestamp {
+	if x != nil {
+		return x.TimeSpanEnd
+	}
+	return nil
+}
+
+func (x *SynthesisCandidate) GetMeanSimilarity() float32 {
+	if x != nil {
+		return x.MeanSimilarity
+	}
+	return 0
+}
+
+func (x *SynthesisCandidate) GetMinSimilarity() float32 {
+	if x != nil {
+		return x.MinSimilarity
+	}
+	return 0
+}
+
+func (x *SynthesisCandidate) GetMaxSimilarity() float32 {
+	if x != nil {
+		return x.MaxSimilarity
+	}
+	return 0
+}
+
+func (x *SynthesisCandidate) GetMembers() []*SynthesisCandidateMember {
+	if x != nil {
+		return x.Members
+	}
+	return nil
+}
+
+type SynthesisCandidatesResponse struct {
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	SpaceId           string                 `protobuf:"bytes,1,opt,name=space_id,json=spaceId,proto3" json:"space_id,omitempty"`
+	GeneratedAt       *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=generated_at,json=generatedAt,proto3" json:"generated_at,omitempty"`
+	LiveEpisodicCount int32                  `protobuf:"varint,3,opt,name=live_episodic_count,json=liveEpisodicCount,proto3" json:"live_episodic_count,omitempty"`
+	Candidates        []*SynthesisCandidate  `protobuf:"bytes,4,rep,name=candidates,proto3" json:"candidates,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
+}
+
+func (x *SynthesisCandidatesResponse) Reset() {
+	*x = SynthesisCandidatesResponse{}
+	mi := &file_omnethdb_v1_omnethdb_proto_msgTypes[26]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SynthesisCandidatesResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SynthesisCandidatesResponse) ProtoMessage() {}
+
+func (x *SynthesisCandidatesResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_omnethdb_v1_omnethdb_proto_msgTypes[26]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SynthesisCandidatesResponse.ProtoReflect.Descriptor instead.
+func (*SynthesisCandidatesResponse) Descriptor() ([]byte, []int) {
+	return file_omnethdb_v1_omnethdb_proto_rawDescGZIP(), []int{26}
+}
+
+func (x *SynthesisCandidatesResponse) GetSpaceId() string {
+	if x != nil {
+		return x.SpaceId
+	}
+	return ""
+}
+
+func (x *SynthesisCandidatesResponse) GetGeneratedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.GeneratedAt
+	}
+	return nil
+}
+
+func (x *SynthesisCandidatesResponse) GetLiveEpisodicCount() int32 {
+	if x != nil {
+		return x.LiveEpisodicCount
+	}
+	return 0
+}
+
+func (x *SynthesisCandidatesResponse) GetCandidates() []*SynthesisCandidate {
+	if x != nil {
+		return x.Candidates
+	}
+	return nil
+}
+
+type PromotionSuggestionsRequest struct {
+	state               protoimpl.MessageState `protogen:"open.v1"`
+	SpaceId             string                 `protobuf:"bytes,1,opt,name=space_id,json=spaceId,proto3" json:"space_id,omitempty"`
+	TopKPerMemory       int32                  `protobuf:"varint,2,opt,name=top_k_per_memory,json=topKPerMemory,proto3" json:"top_k_per_memory,omitempty"`
+	MaxSuggestions      int32                  `protobuf:"varint,3,opt,name=max_suggestions,json=maxSuggestions,proto3" json:"max_suggestions,omitempty"`
+	MinObservationCount int32                  `protobuf:"varint,4,opt,name=min_observation_count,json=minObservationCount,proto3" json:"min_observation_count,omitempty"`
+	MinDistinctActors   int32                  `protobuf:"varint,5,opt,name=min_distinct_actors,json=minDistinctActors,proto3" json:"min_distinct_actors,omitempty"`
+	MinDistinctWindows  int32                  `protobuf:"varint,6,opt,name=min_distinct_windows,json=minDistinctWindows,proto3" json:"min_distinct_windows,omitempty"`
+	MinCumulativeScore  float32                `protobuf:"fixed32,7,opt,name=min_cumulative_score,json=minCumulativeScore,proto3" json:"min_cumulative_score,omitempty"`
+	MinPairScore        float32                `protobuf:"fixed32,8,opt,name=min_pair_score,json=minPairScore,proto3" json:"min_pair_score,omitempty"`
+	IncludeSuperseded   bool                   `protobuf:"varint,9,opt,name=include_superseded,json=includeSuperseded,proto3" json:"include_superseded,omitempty"`
+	IncludeForgotten    bool                   `protobuf:"varint,10,opt,name=include_forgotten,json=includeForgotten,proto3" json:"include_forgotten,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
+}
+
+func (x *PromotionSuggestionsRequest) Reset() {
+	*x = PromotionSuggestionsRequest{}
+	mi := &file_omnethdb_v1_omnethdb_proto_msgTypes[27]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PromotionSuggestionsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PromotionSuggestionsRequest) ProtoMessage() {}
+
+func (x *PromotionSuggestionsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_omnethdb_v1_omnethdb_proto_msgTypes[27]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PromotionSuggestionsRequest.ProtoReflect.Descriptor instead.
+func (*PromotionSuggestionsRequest) Descriptor() ([]byte, []int) {
+	return file_omnethdb_v1_omnethdb_proto_rawDescGZIP(), []int{27}
+}
+
+func (x *PromotionSuggestionsRequest) GetSpaceId() string {
+	if x != nil {
+		return x.SpaceId
+	}
+	return ""
+}
+
+func (x *PromotionSuggestionsRequest) GetTopKPerMemory() int32 {
+	if x != nil {
+		return x.TopKPerMemory
+	}
+	return 0
+}
+
+func (x *PromotionSuggestionsRequest) GetMaxSuggestions() int32 {
+	if x != nil {
+		return x.MaxSuggestions
+	}
+	return 0
+}
+
+func (x *PromotionSuggestionsRequest) GetMinObservationCount() int32 {
+	if x != nil {
+		return x.MinObservationCount
+	}
+	return 0
+}
+
+func (x *PromotionSuggestionsRequest) GetMinDistinctActors() int32 {
+	if x != nil {
+		return x.MinDistinctActors
+	}
+	return 0
+}
+
+func (x *PromotionSuggestionsRequest) GetMinDistinctWindows() int32 {
+	if x != nil {
+		return x.MinDistinctWindows
+	}
+	return 0
+}
+
+func (x *PromotionSuggestionsRequest) GetMinCumulativeScore() float32 {
+	if x != nil {
+		return x.MinCumulativeScore
+	}
+	return 0
+}
+
+func (x *PromotionSuggestionsRequest) GetMinPairScore() float32 {
+	if x != nil {
+		return x.MinPairScore
+	}
+	return 0
+}
+
+func (x *PromotionSuggestionsRequest) GetIncludeSuperseded() bool {
+	if x != nil {
+		return x.IncludeSuperseded
+	}
+	return false
+}
+
+func (x *PromotionSuggestionsRequest) GetIncludeForgotten() bool {
+	if x != nil {
+		return x.IncludeForgotten
+	}
+	return false
+}
+
+type PromotionSuggestionMemory struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	MemoryId      string                 `protobuf:"bytes,1,opt,name=memory_id,json=memoryId,proto3" json:"memory_id,omitempty"`
+	SpaceId       string                 `protobuf:"bytes,2,opt,name=space_id,json=spaceId,proto3" json:"space_id,omitempty"`
+	ActorId       string                 `protobuf:"bytes,3,opt,name=actor_id,json=actorId,proto3" json:"actor_id,omitempty"`
+	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	Content       string                 `protobuf:"bytes,5,opt,name=content,proto3" json:"content,omitempty"`
+	IsLatest      bool                   `protobuf:"varint,6,opt,name=is_latest,json=isLatest,proto3" json:"is_latest,omitempty"`
+	IsForgotten   bool                   `protobuf:"varint,7,opt,name=is_forgotten,json=isForgotten,proto3" json:"is_forgotten,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PromotionSuggestionMemory) Reset() {
+	*x = PromotionSuggestionMemory{}
+	mi := &file_omnethdb_v1_omnethdb_proto_msgTypes[28]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PromotionSuggestionMemory) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PromotionSuggestionMemory) ProtoMessage() {}
+
+func (x *PromotionSuggestionMemory) ProtoReflect() protoreflect.Message {
+	mi := &file_omnethdb_v1_omnethdb_proto_msgTypes[28]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PromotionSuggestionMemory.ProtoReflect.Descriptor instead.
+func (*PromotionSuggestionMemory) Descriptor() ([]byte, []int) {
+	return file_omnethdb_v1_omnethdb_proto_rawDescGZIP(), []int{28}
+}
+
+func (x *PromotionSuggestionMemory) GetMemoryId() string {
+	if x != nil {
+		return x.MemoryId
+	}
+	return ""
+}
+
+func (x *PromotionSuggestionMemory) GetSpaceId() string {
+	if x != nil {
+		return x.SpaceId
+	}
+	return ""
+}
+
+func (x *PromotionSuggestionMemory) GetActorId() string {
+	if x != nil {
+		return x.ActorId
+	}
+	return ""
+}
+
+func (x *PromotionSuggestionMemory) GetCreatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return nil
+}
+
+func (x *PromotionSuggestionMemory) GetContent() string {
+	if x != nil {
+		return x.Content
+	}
+	return ""
+}
+
+func (x *PromotionSuggestionMemory) GetIsLatest() bool {
+	if x != nil {
+		return x.IsLatest
+	}
+	return false
+}
+
+func (x *PromotionSuggestionMemory) GetIsForgotten() bool {
+	if x != nil {
+		return x.IsForgotten
+	}
+	return false
+}
+
+type PromotionSuggestion struct {
+	state               protoimpl.MessageState     `protogen:"open.v1"`
+	MemoryId            string                     `protobuf:"bytes,1,opt,name=memory_id,json=memoryId,proto3" json:"memory_id,omitempty"`
+	AdvisoryOnly        bool                       `protobuf:"varint,2,opt,name=advisory_only,json=advisoryOnly,proto3" json:"advisory_only,omitempty"`
+	ReasonCodes         []string                   `protobuf:"bytes,3,rep,name=reason_codes,json=reasonCodes,proto3" json:"reason_codes,omitempty"`
+	SuggestedAction     string                     `protobuf:"bytes,4,opt,name=suggested_action,json=suggestedAction,proto3" json:"suggested_action,omitempty"`
+	ObservationCount    int32                      `protobuf:"varint,5,opt,name=observation_count,json=observationCount,proto3" json:"observation_count,omitempty"`
+	DistinctTimeWindows int32                      `protobuf:"varint,6,opt,name=distinct_time_windows,json=distinctTimeWindows,proto3" json:"distinct_time_windows,omitempty"`
+	DistinctActors      int32                      `protobuf:"varint,7,opt,name=distinct_actors,json=distinctActors,proto3" json:"distinct_actors,omitempty"`
+	CumulativeScore     float32                    `protobuf:"fixed32,8,opt,name=cumulative_score,json=cumulativeScore,proto3" json:"cumulative_score,omitempty"`
+	LatestScore         float32                    `protobuf:"fixed32,9,opt,name=latest_score,json=latestScore,proto3" json:"latest_score,omitempty"`
+	FirstSeenAt         *timestamppb.Timestamp     `protobuf:"bytes,10,opt,name=first_seen_at,json=firstSeenAt,proto3" json:"first_seen_at,omitempty"`
+	LastSeenAt          *timestamppb.Timestamp     `protobuf:"bytes,11,opt,name=last_seen_at,json=lastSeenAt,proto3" json:"last_seen_at,omitempty"`
+	ChurnRisk           float32                    `protobuf:"fixed32,12,opt,name=churn_risk,json=churnRisk,proto3" json:"churn_risk,omitempty"`
+	ContradictionRisk   float32                    `protobuf:"fixed32,13,opt,name=contradiction_risk,json=contradictionRisk,proto3" json:"contradiction_risk,omitempty"`
+	Explanation         string                     `protobuf:"bytes,14,opt,name=explanation,proto3" json:"explanation,omitempty"`
+	Memory              *PromotionSuggestionMemory `protobuf:"bytes,15,opt,name=memory,proto3" json:"memory,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
+}
+
+func (x *PromotionSuggestion) Reset() {
+	*x = PromotionSuggestion{}
+	mi := &file_omnethdb_v1_omnethdb_proto_msgTypes[29]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PromotionSuggestion) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PromotionSuggestion) ProtoMessage() {}
+
+func (x *PromotionSuggestion) ProtoReflect() protoreflect.Message {
+	mi := &file_omnethdb_v1_omnethdb_proto_msgTypes[29]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PromotionSuggestion.ProtoReflect.Descriptor instead.
+func (*PromotionSuggestion) Descriptor() ([]byte, []int) {
+	return file_omnethdb_v1_omnethdb_proto_rawDescGZIP(), []int{29}
+}
+
+func (x *PromotionSuggestion) GetMemoryId() string {
+	if x != nil {
+		return x.MemoryId
+	}
+	return ""
+}
+
+func (x *PromotionSuggestion) GetAdvisoryOnly() bool {
+	if x != nil {
+		return x.AdvisoryOnly
+	}
+	return false
+}
+
+func (x *PromotionSuggestion) GetReasonCodes() []string {
+	if x != nil {
+		return x.ReasonCodes
+	}
+	return nil
+}
+
+func (x *PromotionSuggestion) GetSuggestedAction() string {
+	if x != nil {
+		return x.SuggestedAction
+	}
+	return ""
+}
+
+func (x *PromotionSuggestion) GetObservationCount() int32 {
+	if x != nil {
+		return x.ObservationCount
+	}
+	return 0
+}
+
+func (x *PromotionSuggestion) GetDistinctTimeWindows() int32 {
+	if x != nil {
+		return x.DistinctTimeWindows
+	}
+	return 0
+}
+
+func (x *PromotionSuggestion) GetDistinctActors() int32 {
+	if x != nil {
+		return x.DistinctActors
+	}
+	return 0
+}
+
+func (x *PromotionSuggestion) GetCumulativeScore() float32 {
+	if x != nil {
+		return x.CumulativeScore
+	}
+	return 0
+}
+
+func (x *PromotionSuggestion) GetLatestScore() float32 {
+	if x != nil {
+		return x.LatestScore
+	}
+	return 0
+}
+
+func (x *PromotionSuggestion) GetFirstSeenAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.FirstSeenAt
+	}
+	return nil
+}
+
+func (x *PromotionSuggestion) GetLastSeenAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.LastSeenAt
+	}
+	return nil
+}
+
+func (x *PromotionSuggestion) GetChurnRisk() float32 {
+	if x != nil {
+		return x.ChurnRisk
+	}
+	return 0
+}
+
+func (x *PromotionSuggestion) GetContradictionRisk() float32 {
+	if x != nil {
+		return x.ContradictionRisk
+	}
+	return 0
+}
+
+func (x *PromotionSuggestion) GetExplanation() string {
+	if x != nil {
+		return x.Explanation
+	}
+	return ""
+}
+
+func (x *PromotionSuggestion) GetMemory() *PromotionSuggestionMemory {
+	if x != nil {
+		return x.Memory
+	}
+	return nil
+}
+
+type PromotionSuggestionsResponse struct {
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	SpaceId           string                 `protobuf:"bytes,1,opt,name=space_id,json=spaceId,proto3" json:"space_id,omitempty"`
+	GeneratedAt       *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=generated_at,json=generatedAt,proto3" json:"generated_at,omitempty"`
+	LiveEpisodicCount int32                  `protobuf:"varint,3,opt,name=live_episodic_count,json=liveEpisodicCount,proto3" json:"live_episodic_count,omitempty"`
+	Suggestions       []*PromotionSuggestion `protobuf:"bytes,4,rep,name=suggestions,proto3" json:"suggestions,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
+}
+
+func (x *PromotionSuggestionsResponse) Reset() {
+	*x = PromotionSuggestionsResponse{}
+	mi := &file_omnethdb_v1_omnethdb_proto_msgTypes[30]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PromotionSuggestionsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PromotionSuggestionsResponse) ProtoMessage() {}
+
+func (x *PromotionSuggestionsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_omnethdb_v1_omnethdb_proto_msgTypes[30]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PromotionSuggestionsResponse.ProtoReflect.Descriptor instead.
+func (*PromotionSuggestionsResponse) Descriptor() ([]byte, []int) {
+	return file_omnethdb_v1_omnethdb_proto_rawDescGZIP(), []int{30}
+}
+
+func (x *PromotionSuggestionsResponse) GetSpaceId() string {
+	if x != nil {
+		return x.SpaceId
+	}
+	return ""
+}
+
+func (x *PromotionSuggestionsResponse) GetGeneratedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.GeneratedAt
+	}
+	return nil
+}
+
+func (x *PromotionSuggestionsResponse) GetLiveEpisodicCount() int32 {
+	if x != nil {
+		return x.LiveEpisodicCount
+	}
+	return 0
+}
+
+func (x *PromotionSuggestionsResponse) GetSuggestions() []*PromotionSuggestion {
+	if x != nil {
+		return x.Suggestions
+	}
+	return nil
+}
+
 type ForgetRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -1857,7 +2689,7 @@ type ForgetRequest struct {
 
 func (x *ForgetRequest) Reset() {
 	*x = ForgetRequest{}
-	mi := &file_omnethdb_v1_omnethdb_proto_msgTypes[23]
+	mi := &file_omnethdb_v1_omnethdb_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1869,7 +2701,7 @@ func (x *ForgetRequest) String() string {
 func (*ForgetRequest) ProtoMessage() {}
 
 func (x *ForgetRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_omnethdb_v1_omnethdb_proto_msgTypes[23]
+	mi := &file_omnethdb_v1_omnethdb_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1882,7 +2714,7 @@ func (x *ForgetRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ForgetRequest.ProtoReflect.Descriptor instead.
 func (*ForgetRequest) Descriptor() ([]byte, []int) {
-	return file_omnethdb_v1_omnethdb_proto_rawDescGZIP(), []int{23}
+	return file_omnethdb_v1_omnethdb_proto_rawDescGZIP(), []int{31}
 }
 
 func (x *ForgetRequest) GetId() string {
@@ -1920,7 +2752,7 @@ type ReviveRequest struct {
 
 func (x *ReviveRequest) Reset() {
 	*x = ReviveRequest{}
-	mi := &file_omnethdb_v1_omnethdb_proto_msgTypes[24]
+	mi := &file_omnethdb_v1_omnethdb_proto_msgTypes[32]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1932,7 +2764,7 @@ func (x *ReviveRequest) String() string {
 func (*ReviveRequest) ProtoMessage() {}
 
 func (x *ReviveRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_omnethdb_v1_omnethdb_proto_msgTypes[24]
+	mi := &file_omnethdb_v1_omnethdb_proto_msgTypes[32]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1945,7 +2777,7 @@ func (x *ReviveRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReviveRequest.ProtoReflect.Descriptor instead.
 func (*ReviveRequest) Descriptor() ([]byte, []int) {
-	return file_omnethdb_v1_omnethdb_proto_rawDescGZIP(), []int{24}
+	return file_omnethdb_v1_omnethdb_proto_rawDescGZIP(), []int{32}
 }
 
 func (x *ReviveRequest) GetRootId() string {
@@ -1999,7 +2831,7 @@ type GetLineageRequest struct {
 
 func (x *GetLineageRequest) Reset() {
 	*x = GetLineageRequest{}
-	mi := &file_omnethdb_v1_omnethdb_proto_msgTypes[25]
+	mi := &file_omnethdb_v1_omnethdb_proto_msgTypes[33]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2011,7 +2843,7 @@ func (x *GetLineageRequest) String() string {
 func (*GetLineageRequest) ProtoMessage() {}
 
 func (x *GetLineageRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_omnethdb_v1_omnethdb_proto_msgTypes[25]
+	mi := &file_omnethdb_v1_omnethdb_proto_msgTypes[33]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2024,7 +2856,7 @@ func (x *GetLineageRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetLineageRequest.ProtoReflect.Descriptor instead.
 func (*GetLineageRequest) Descriptor() ([]byte, []int) {
-	return file_omnethdb_v1_omnethdb_proto_rawDescGZIP(), []int{25}
+	return file_omnethdb_v1_omnethdb_proto_rawDescGZIP(), []int{33}
 }
 
 func (x *GetLineageRequest) GetRootId() string {
@@ -2043,7 +2875,7 @@ type LineageResponse struct {
 
 func (x *LineageResponse) Reset() {
 	*x = LineageResponse{}
-	mi := &file_omnethdb_v1_omnethdb_proto_msgTypes[26]
+	mi := &file_omnethdb_v1_omnethdb_proto_msgTypes[34]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2055,7 +2887,7 @@ func (x *LineageResponse) String() string {
 func (*LineageResponse) ProtoMessage() {}
 
 func (x *LineageResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_omnethdb_v1_omnethdb_proto_msgTypes[26]
+	mi := &file_omnethdb_v1_omnethdb_proto_msgTypes[34]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2068,7 +2900,7 @@ func (x *LineageResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LineageResponse.ProtoReflect.Descriptor instead.
 func (*LineageResponse) Descriptor() ([]byte, []int) {
-	return file_omnethdb_v1_omnethdb_proto_rawDescGZIP(), []int{26}
+	return file_omnethdb_v1_omnethdb_proto_rawDescGZIP(), []int{34}
 }
 
 func (x *LineageResponse) GetMemories() []*Memory {
@@ -2089,7 +2921,7 @@ type GetRelatedRequest struct {
 
 func (x *GetRelatedRequest) Reset() {
 	*x = GetRelatedRequest{}
-	mi := &file_omnethdb_v1_omnethdb_proto_msgTypes[27]
+	mi := &file_omnethdb_v1_omnethdb_proto_msgTypes[35]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2101,7 +2933,7 @@ func (x *GetRelatedRequest) String() string {
 func (*GetRelatedRequest) ProtoMessage() {}
 
 func (x *GetRelatedRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_omnethdb_v1_omnethdb_proto_msgTypes[27]
+	mi := &file_omnethdb_v1_omnethdb_proto_msgTypes[35]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2114,7 +2946,7 @@ func (x *GetRelatedRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetRelatedRequest.ProtoReflect.Descriptor instead.
 func (*GetRelatedRequest) Descriptor() ([]byte, []int) {
-	return file_omnethdb_v1_omnethdb_proto_rawDescGZIP(), []int{27}
+	return file_omnethdb_v1_omnethdb_proto_rawDescGZIP(), []int{35}
 }
 
 func (x *GetRelatedRequest) GetMemoryId() string {
@@ -2147,7 +2979,7 @@ type RelatedResponse struct {
 
 func (x *RelatedResponse) Reset() {
 	*x = RelatedResponse{}
-	mi := &file_omnethdb_v1_omnethdb_proto_msgTypes[28]
+	mi := &file_omnethdb_v1_omnethdb_proto_msgTypes[36]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2159,7 +2991,7 @@ func (x *RelatedResponse) String() string {
 func (*RelatedResponse) ProtoMessage() {}
 
 func (x *RelatedResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_omnethdb_v1_omnethdb_proto_msgTypes[28]
+	mi := &file_omnethdb_v1_omnethdb_proto_msgTypes[36]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2172,7 +3004,7 @@ func (x *RelatedResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RelatedResponse.ProtoReflect.Descriptor instead.
 func (*RelatedResponse) Descriptor() ([]byte, []int) {
-	return file_omnethdb_v1_omnethdb_proto_rawDescGZIP(), []int{28}
+	return file_omnethdb_v1_omnethdb_proto_rawDescGZIP(), []int{36}
 }
 
 func (x *RelatedResponse) GetMemories() []*Memory {
@@ -2192,7 +3024,7 @@ type GetAuditLogRequest struct {
 
 func (x *GetAuditLogRequest) Reset() {
 	*x = GetAuditLogRequest{}
-	mi := &file_omnethdb_v1_omnethdb_proto_msgTypes[29]
+	mi := &file_omnethdb_v1_omnethdb_proto_msgTypes[37]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2204,7 +3036,7 @@ func (x *GetAuditLogRequest) String() string {
 func (*GetAuditLogRequest) ProtoMessage() {}
 
 func (x *GetAuditLogRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_omnethdb_v1_omnethdb_proto_msgTypes[29]
+	mi := &file_omnethdb_v1_omnethdb_proto_msgTypes[37]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2217,7 +3049,7 @@ func (x *GetAuditLogRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetAuditLogRequest.ProtoReflect.Descriptor instead.
 func (*GetAuditLogRequest) Descriptor() ([]byte, []int) {
-	return file_omnethdb_v1_omnethdb_proto_rawDescGZIP(), []int{29}
+	return file_omnethdb_v1_omnethdb_proto_rawDescGZIP(), []int{37}
 }
 
 func (x *GetAuditLogRequest) GetSpaceId() string {
@@ -2243,7 +3075,7 @@ type AuditLogResponse struct {
 
 func (x *AuditLogResponse) Reset() {
 	*x = AuditLogResponse{}
-	mi := &file_omnethdb_v1_omnethdb_proto_msgTypes[30]
+	mi := &file_omnethdb_v1_omnethdb_proto_msgTypes[38]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2255,7 +3087,7 @@ func (x *AuditLogResponse) String() string {
 func (*AuditLogResponse) ProtoMessage() {}
 
 func (x *AuditLogResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_omnethdb_v1_omnethdb_proto_msgTypes[30]
+	mi := &file_omnethdb_v1_omnethdb_proto_msgTypes[38]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2268,7 +3100,7 @@ func (x *AuditLogResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AuditLogResponse.ProtoReflect.Descriptor instead.
 func (*AuditLogResponse) Descriptor() ([]byte, []int) {
-	return file_omnethdb_v1_omnethdb_proto_rawDescGZIP(), []int{30}
+	return file_omnethdb_v1_omnethdb_proto_rawDescGZIP(), []int{38}
 }
 
 func (x *AuditLogResponse) GetEntries() []*AuditEntry {
@@ -2289,7 +3121,7 @@ type MigrateEmbeddingsRequest struct {
 
 func (x *MigrateEmbeddingsRequest) Reset() {
 	*x = MigrateEmbeddingsRequest{}
-	mi := &file_omnethdb_v1_omnethdb_proto_msgTypes[31]
+	mi := &file_omnethdb_v1_omnethdb_proto_msgTypes[39]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2301,7 +3133,7 @@ func (x *MigrateEmbeddingsRequest) String() string {
 func (*MigrateEmbeddingsRequest) ProtoMessage() {}
 
 func (x *MigrateEmbeddingsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_omnethdb_v1_omnethdb_proto_msgTypes[31]
+	mi := &file_omnethdb_v1_omnethdb_proto_msgTypes[39]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2314,7 +3146,7 @@ func (x *MigrateEmbeddingsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MigrateEmbeddingsRequest.ProtoReflect.Descriptor instead.
 func (*MigrateEmbeddingsRequest) Descriptor() ([]byte, []int) {
-	return file_omnethdb_v1_omnethdb_proto_rawDescGZIP(), []int{31}
+	return file_omnethdb_v1_omnethdb_proto_rawDescGZIP(), []int{39}
 }
 
 func (x *MigrateEmbeddingsRequest) GetSpaceId() string {
@@ -2347,7 +3179,7 @@ type StatusResponse struct {
 
 func (x *StatusResponse) Reset() {
 	*x = StatusResponse{}
-	mi := &file_omnethdb_v1_omnethdb_proto_msgTypes[32]
+	mi := &file_omnethdb_v1_omnethdb_proto_msgTypes[40]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2359,7 +3191,7 @@ func (x *StatusResponse) String() string {
 func (*StatusResponse) ProtoMessage() {}
 
 func (x *StatusResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_omnethdb_v1_omnethdb_proto_msgTypes[32]
+	mi := &file_omnethdb_v1_omnethdb_proto_msgTypes[40]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2372,7 +3204,7 @@ func (x *StatusResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StatusResponse.ProtoReflect.Descriptor instead.
 func (*StatusResponse) Descriptor() ([]byte, []int) {
-	return file_omnethdb_v1_omnethdb_proto_rawDescGZIP(), []int{32}
+	return file_omnethdb_v1_omnethdb_proto_rawDescGZIP(), []int{40}
 }
 
 func (x *StatusResponse) GetStatus() string {
@@ -2556,7 +3388,92 @@ const file_omnethdb_v1_omnethdb_proto_rawDesc = "" +
 	"\acontent\x18\x02 \x01(\tR\acontent\x12\x13\n" +
 	"\x05top_k\x18\x03 \x01(\x05R\x04topK\x12-\n" +
 	"\x12include_superseded\x18\x04 \x01(\bR\x11includeSuperseded\x12+\n" +
-	"\x11include_forgotten\x18\x05 \x01(\bR\x10includeForgotten\"a\n" +
+	"\x11include_forgotten\x18\x05 \x01(\bR\x10includeForgotten\"\xb3\x02\n" +
+	"\x1aSynthesisCandidatesRequest\x12\x19\n" +
+	"\bspace_id\x18\x01 \x01(\tR\aspaceId\x12'\n" +
+	"\x10top_k_per_memory\x18\x02 \x01(\x05R\rtopKPerMemory\x12%\n" +
+	"\x0emax_candidates\x18\x03 \x01(\x05R\rmaxCandidates\x12(\n" +
+	"\x10min_cluster_size\x18\x04 \x01(\x05R\x0eminClusterSize\x12$\n" +
+	"\x0emin_pair_score\x18\x05 \x01(\x02R\fminPairScore\x12-\n" +
+	"\x12include_superseded\x18\x06 \x01(\bR\x11includeSuperseded\x12+\n" +
+	"\x11include_forgotten\x18\a \x01(\bR\x10includeForgotten\"\x82\x02\n" +
+	"\x18SynthesisCandidateMember\x12\x1b\n" +
+	"\tmemory_id\x18\x01 \x01(\tR\bmemoryId\x12\x19\n" +
+	"\bspace_id\x18\x02 \x01(\tR\aspaceId\x12\x19\n" +
+	"\bactor_id\x18\x03 \x01(\tR\aactorId\x129\n" +
+	"\n" +
+	"created_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x12\x18\n" +
+	"\acontent\x18\x05 \x01(\tR\acontent\x12\x1b\n" +
+	"\tis_latest\x18\x06 \x01(\bR\bisLatest\x12!\n" +
+	"\fis_forgotten\x18\a \x01(\bR\visForgotten\"\xfe\x04\n" +
+	"\x12SynthesisCandidate\x12!\n" +
+	"\fcandidate_id\x18\x01 \x01(\tR\vcandidateId\x12#\n" +
+	"\radvisory_only\x18\x02 \x01(\bR\fadvisoryOnly\x12!\n" +
+	"\freason_codes\x18\x03 \x03(\tR\vreasonCodes\x12)\n" +
+	"\x10suggested_action\x18\x04 \x01(\tR\x0fsuggestedAction\x12!\n" +
+	"\freview_score\x18\x05 \x01(\x02R\vreviewScore\x12!\n" +
+	"\fcluster_size\x18\x06 \x01(\x05R\vclusterSize\x12'\n" +
+	"\x0fdistinct_actors\x18\a \x01(\x05R\x0edistinctActors\x12'\n" +
+	"\x0fdistinct_spaces\x18\b \x01(\x05R\x0edistinctSpaces\x12B\n" +
+	"\x0ftime_span_start\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\rtimeSpanStart\x12>\n" +
+	"\rtime_span_end\x18\n" +
+	" \x01(\v2\x1a.google.protobuf.TimestampR\vtimeSpanEnd\x12'\n" +
+	"\x0fmean_similarity\x18\v \x01(\x02R\x0emeanSimilarity\x12%\n" +
+	"\x0emin_similarity\x18\f \x01(\x02R\rminSimilarity\x12%\n" +
+	"\x0emax_similarity\x18\r \x01(\x02R\rmaxSimilarity\x12?\n" +
+	"\amembers\x18\x0e \x03(\v2%.omnethdb.v1.SynthesisCandidateMemberR\amembers\"\xe8\x01\n" +
+	"\x1bSynthesisCandidatesResponse\x12\x19\n" +
+	"\bspace_id\x18\x01 \x01(\tR\aspaceId\x12=\n" +
+	"\fgenerated_at\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\vgeneratedAt\x12.\n" +
+	"\x13live_episodic_count\x18\x03 \x01(\x05R\x11liveEpisodicCount\x12?\n" +
+	"\n" +
+	"candidates\x18\x04 \x03(\v2\x1f.omnethdb.v1.SynthesisCandidateR\n" +
+	"candidates\"\xd4\x03\n" +
+	"\x1bPromotionSuggestionsRequest\x12\x19\n" +
+	"\bspace_id\x18\x01 \x01(\tR\aspaceId\x12'\n" +
+	"\x10top_k_per_memory\x18\x02 \x01(\x05R\rtopKPerMemory\x12'\n" +
+	"\x0fmax_suggestions\x18\x03 \x01(\x05R\x0emaxSuggestions\x122\n" +
+	"\x15min_observation_count\x18\x04 \x01(\x05R\x13minObservationCount\x12.\n" +
+	"\x13min_distinct_actors\x18\x05 \x01(\x05R\x11minDistinctActors\x120\n" +
+	"\x14min_distinct_windows\x18\x06 \x01(\x05R\x12minDistinctWindows\x120\n" +
+	"\x14min_cumulative_score\x18\a \x01(\x02R\x12minCumulativeScore\x12$\n" +
+	"\x0emin_pair_score\x18\b \x01(\x02R\fminPairScore\x12-\n" +
+	"\x12include_superseded\x18\t \x01(\bR\x11includeSuperseded\x12+\n" +
+	"\x11include_forgotten\x18\n" +
+	" \x01(\bR\x10includeForgotten\"\x83\x02\n" +
+	"\x19PromotionSuggestionMemory\x12\x1b\n" +
+	"\tmemory_id\x18\x01 \x01(\tR\bmemoryId\x12\x19\n" +
+	"\bspace_id\x18\x02 \x01(\tR\aspaceId\x12\x19\n" +
+	"\bactor_id\x18\x03 \x01(\tR\aactorId\x129\n" +
+	"\n" +
+	"created_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x12\x18\n" +
+	"\acontent\x18\x05 \x01(\tR\acontent\x12\x1b\n" +
+	"\tis_latest\x18\x06 \x01(\bR\bisLatest\x12!\n" +
+	"\fis_forgotten\x18\a \x01(\bR\visForgotten\"\xab\x05\n" +
+	"\x13PromotionSuggestion\x12\x1b\n" +
+	"\tmemory_id\x18\x01 \x01(\tR\bmemoryId\x12#\n" +
+	"\radvisory_only\x18\x02 \x01(\bR\fadvisoryOnly\x12!\n" +
+	"\freason_codes\x18\x03 \x03(\tR\vreasonCodes\x12)\n" +
+	"\x10suggested_action\x18\x04 \x01(\tR\x0fsuggestedAction\x12+\n" +
+	"\x11observation_count\x18\x05 \x01(\x05R\x10observationCount\x122\n" +
+	"\x15distinct_time_windows\x18\x06 \x01(\x05R\x13distinctTimeWindows\x12'\n" +
+	"\x0fdistinct_actors\x18\a \x01(\x05R\x0edistinctActors\x12)\n" +
+	"\x10cumulative_score\x18\b \x01(\x02R\x0fcumulativeScore\x12!\n" +
+	"\flatest_score\x18\t \x01(\x02R\vlatestScore\x12>\n" +
+	"\rfirst_seen_at\x18\n" +
+	" \x01(\v2\x1a.google.protobuf.TimestampR\vfirstSeenAt\x12<\n" +
+	"\flast_seen_at\x18\v \x01(\v2\x1a.google.protobuf.TimestampR\n" +
+	"lastSeenAt\x12\x1d\n" +
+	"\n" +
+	"churn_risk\x18\f \x01(\x02R\tchurnRisk\x12-\n" +
+	"\x12contradiction_risk\x18\r \x01(\x02R\x11contradictionRisk\x12 \n" +
+	"\vexplanation\x18\x0e \x01(\tR\vexplanation\x12>\n" +
+	"\x06memory\x18\x0f \x01(\v2&.omnethdb.v1.PromotionSuggestionMemoryR\x06memory\"\xec\x01\n" +
+	"\x1cPromotionSuggestionsResponse\x12\x19\n" +
+	"\bspace_id\x18\x01 \x01(\tR\aspaceId\x12=\n" +
+	"\fgenerated_at\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\vgeneratedAt\x12.\n" +
+	"\x13live_episodic_count\x18\x03 \x01(\x05R\x11liveEpisodicCount\x12B\n" +
+	"\vsuggestions\x18\x04 \x03(\v2 .omnethdb.v1.PromotionSuggestionR\vsuggestions\"a\n" +
 	"\rForgetRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12(\n" +
 	"\x05actor\x18\x02 \x01(\v2\x12.omnethdb.v1.ActorR\x05actor\x12\x16\n" +
@@ -2605,7 +3522,7 @@ const file_omnethdb_v1_omnethdb_proto_rawDesc = "" +
 	"\fRelationType\x12\x19\n" +
 	"\x15RELATION_TYPE_UPDATES\x10\x00\x12\x19\n" +
 	"\x15RELATION_TYPE_EXTENDS\x10\x01\x12\x19\n" +
-	"\x15RELATION_TYPE_DERIVES\x10\x022\x9e\b\n" +
+	"\x15RELATION_TYPE_DERIVES\x10\x022\xf5\t\n" +
 	"\bOmnethDB\x12A\n" +
 	"\x06Health\x12\x1a.omnethdb.v1.HealthRequest\x1a\x1b.omnethdb.v1.HealthResponse\x12_\n" +
 	"\x10GetRuntimeConfig\x12$.omnethdb.v1.GetRuntimeConfigRequest\x1a%.omnethdb.v1.GetRuntimeConfigResponse\x12D\n" +
@@ -2615,7 +3532,9 @@ const file_omnethdb_v1_omnethdb_proto_rawDesc = "" +
 	"\x06Recall\x12\x1a.omnethdb.v1.RecallRequest\x1a\x1b.omnethdb.v1.RecallResponse\x12H\n" +
 	"\n" +
 	"GetProfile\x12\x1e.omnethdb.v1.GetProfileRequest\x1a\x1a.omnethdb.v1.MemoryProfile\x12Q\n" +
-	"\x0eFindCandidates\x12\".omnethdb.v1.FindCandidatesRequest\x1a\x1b.omnethdb.v1.RecallResponse\x12A\n" +
+	"\x0eFindCandidates\x12\".omnethdb.v1.FindCandidatesRequest\x1a\x1b.omnethdb.v1.RecallResponse\x12h\n" +
+	"\x13SynthesisCandidates\x12'.omnethdb.v1.SynthesisCandidatesRequest\x1a(.omnethdb.v1.SynthesisCandidatesResponse\x12k\n" +
+	"\x14PromotionSuggestions\x12(.omnethdb.v1.PromotionSuggestionsRequest\x1a).omnethdb.v1.PromotionSuggestionsResponse\x12A\n" +
 	"\x06Forget\x12\x1a.omnethdb.v1.ForgetRequest\x1a\x1b.omnethdb.v1.StatusResponse\x129\n" +
 	"\x06Revive\x12\x1a.omnethdb.v1.ReviveRequest\x1a\x13.omnethdb.v1.Memory\x12J\n" +
 	"\n" +
@@ -2638,126 +3557,150 @@ func file_omnethdb_v1_omnethdb_proto_rawDescGZIP() []byte {
 }
 
 var file_omnethdb_v1_omnethdb_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
-var file_omnethdb_v1_omnethdb_proto_msgTypes = make([]protoimpl.MessageInfo, 37)
+var file_omnethdb_v1_omnethdb_proto_msgTypes = make([]protoimpl.MessageInfo, 45)
 var file_omnethdb_v1_omnethdb_proto_goTypes = []any{
-	(MemoryKind)(0),                  // 0: omnethdb.v1.MemoryKind
-	(ActorKind)(0),                   // 1: omnethdb.v1.ActorKind
-	(RelationType)(0),                // 2: omnethdb.v1.RelationType
-	(*Actor)(nil),                    // 3: omnethdb.v1.Actor
-	(*MemoryRelations)(nil),          // 4: omnethdb.v1.MemoryRelations
-	(*WritersPolicy)(nil),            // 5: omnethdb.v1.WritersPolicy
-	(*SpaceWritePolicy)(nil),         // 6: omnethdb.v1.SpaceWritePolicy
-	(*SpaceConfig)(nil),              // 7: omnethdb.v1.SpaceConfig
-	(*Memory)(nil),                   // 8: omnethdb.v1.Memory
-	(*ScoredMemory)(nil),             // 9: omnethdb.v1.ScoredMemory
-	(*MemoryProfile)(nil),            // 10: omnethdb.v1.MemoryProfile
-	(*AuditEntry)(nil),               // 11: omnethdb.v1.AuditEntry
-	(*RuntimeEmbedderConfig)(nil),    // 12: omnethdb.v1.RuntimeEmbedderConfig
-	(*RuntimeSpaceSettings)(nil),     // 13: omnethdb.v1.RuntimeSpaceSettings
-	(*RuntimeConfig)(nil),            // 14: omnethdb.v1.RuntimeConfig
-	(*HealthRequest)(nil),            // 15: omnethdb.v1.HealthRequest
-	(*HealthResponse)(nil),           // 16: omnethdb.v1.HealthResponse
-	(*GetRuntimeConfigRequest)(nil),  // 17: omnethdb.v1.GetRuntimeConfigRequest
-	(*GetRuntimeConfigResponse)(nil), // 18: omnethdb.v1.GetRuntimeConfigResponse
-	(*InitSpaceRequest)(nil),         // 19: omnethdb.v1.InitSpaceRequest
-	(*GetSpaceConfigRequest)(nil),    // 20: omnethdb.v1.GetSpaceConfigRequest
-	(*RememberRequest)(nil),          // 21: omnethdb.v1.RememberRequest
-	(*RecallRequest)(nil),            // 22: omnethdb.v1.RecallRequest
-	(*RecallResponse)(nil),           // 23: omnethdb.v1.RecallResponse
-	(*GetProfileRequest)(nil),        // 24: omnethdb.v1.GetProfileRequest
-	(*FindCandidatesRequest)(nil),    // 25: omnethdb.v1.FindCandidatesRequest
-	(*ForgetRequest)(nil),            // 26: omnethdb.v1.ForgetRequest
-	(*ReviveRequest)(nil),            // 27: omnethdb.v1.ReviveRequest
-	(*GetLineageRequest)(nil),        // 28: omnethdb.v1.GetLineageRequest
-	(*LineageResponse)(nil),          // 29: omnethdb.v1.LineageResponse
-	(*GetRelatedRequest)(nil),        // 30: omnethdb.v1.GetRelatedRequest
-	(*RelatedResponse)(nil),          // 31: omnethdb.v1.RelatedResponse
-	(*GetAuditLogRequest)(nil),       // 32: omnethdb.v1.GetAuditLogRequest
-	(*AuditLogResponse)(nil),         // 33: omnethdb.v1.AuditLogResponse
-	(*MigrateEmbeddingsRequest)(nil), // 34: omnethdb.v1.MigrateEmbeddingsRequest
-	(*StatusResponse)(nil),           // 35: omnethdb.v1.StatusResponse
-	nil,                              // 36: omnethdb.v1.SpaceWritePolicy.TrustLevelsEntry
-	nil,                              // 37: omnethdb.v1.RuntimeConfig.SpacesEntry
-	nil,                              // 38: omnethdb.v1.RecallRequest.SpaceWeightsEntry
-	nil,                              // 39: omnethdb.v1.GetProfileRequest.SpaceWeightsEntry
-	(*timestamppb.Timestamp)(nil),    // 40: google.protobuf.Timestamp
-	(*structpb.Struct)(nil),          // 41: google.protobuf.Struct
+	(MemoryKind)(0),                      // 0: omnethdb.v1.MemoryKind
+	(ActorKind)(0),                       // 1: omnethdb.v1.ActorKind
+	(RelationType)(0),                    // 2: omnethdb.v1.RelationType
+	(*Actor)(nil),                        // 3: omnethdb.v1.Actor
+	(*MemoryRelations)(nil),              // 4: omnethdb.v1.MemoryRelations
+	(*WritersPolicy)(nil),                // 5: omnethdb.v1.WritersPolicy
+	(*SpaceWritePolicy)(nil),             // 6: omnethdb.v1.SpaceWritePolicy
+	(*SpaceConfig)(nil),                  // 7: omnethdb.v1.SpaceConfig
+	(*Memory)(nil),                       // 8: omnethdb.v1.Memory
+	(*ScoredMemory)(nil),                 // 9: omnethdb.v1.ScoredMemory
+	(*MemoryProfile)(nil),                // 10: omnethdb.v1.MemoryProfile
+	(*AuditEntry)(nil),                   // 11: omnethdb.v1.AuditEntry
+	(*RuntimeEmbedderConfig)(nil),        // 12: omnethdb.v1.RuntimeEmbedderConfig
+	(*RuntimeSpaceSettings)(nil),         // 13: omnethdb.v1.RuntimeSpaceSettings
+	(*RuntimeConfig)(nil),                // 14: omnethdb.v1.RuntimeConfig
+	(*HealthRequest)(nil),                // 15: omnethdb.v1.HealthRequest
+	(*HealthResponse)(nil),               // 16: omnethdb.v1.HealthResponse
+	(*GetRuntimeConfigRequest)(nil),      // 17: omnethdb.v1.GetRuntimeConfigRequest
+	(*GetRuntimeConfigResponse)(nil),     // 18: omnethdb.v1.GetRuntimeConfigResponse
+	(*InitSpaceRequest)(nil),             // 19: omnethdb.v1.InitSpaceRequest
+	(*GetSpaceConfigRequest)(nil),        // 20: omnethdb.v1.GetSpaceConfigRequest
+	(*RememberRequest)(nil),              // 21: omnethdb.v1.RememberRequest
+	(*RecallRequest)(nil),                // 22: omnethdb.v1.RecallRequest
+	(*RecallResponse)(nil),               // 23: omnethdb.v1.RecallResponse
+	(*GetProfileRequest)(nil),            // 24: omnethdb.v1.GetProfileRequest
+	(*FindCandidatesRequest)(nil),        // 25: omnethdb.v1.FindCandidatesRequest
+	(*SynthesisCandidatesRequest)(nil),   // 26: omnethdb.v1.SynthesisCandidatesRequest
+	(*SynthesisCandidateMember)(nil),     // 27: omnethdb.v1.SynthesisCandidateMember
+	(*SynthesisCandidate)(nil),           // 28: omnethdb.v1.SynthesisCandidate
+	(*SynthesisCandidatesResponse)(nil),  // 29: omnethdb.v1.SynthesisCandidatesResponse
+	(*PromotionSuggestionsRequest)(nil),  // 30: omnethdb.v1.PromotionSuggestionsRequest
+	(*PromotionSuggestionMemory)(nil),    // 31: omnethdb.v1.PromotionSuggestionMemory
+	(*PromotionSuggestion)(nil),          // 32: omnethdb.v1.PromotionSuggestion
+	(*PromotionSuggestionsResponse)(nil), // 33: omnethdb.v1.PromotionSuggestionsResponse
+	(*ForgetRequest)(nil),                // 34: omnethdb.v1.ForgetRequest
+	(*ReviveRequest)(nil),                // 35: omnethdb.v1.ReviveRequest
+	(*GetLineageRequest)(nil),            // 36: omnethdb.v1.GetLineageRequest
+	(*LineageResponse)(nil),              // 37: omnethdb.v1.LineageResponse
+	(*GetRelatedRequest)(nil),            // 38: omnethdb.v1.GetRelatedRequest
+	(*RelatedResponse)(nil),              // 39: omnethdb.v1.RelatedResponse
+	(*GetAuditLogRequest)(nil),           // 40: omnethdb.v1.GetAuditLogRequest
+	(*AuditLogResponse)(nil),             // 41: omnethdb.v1.AuditLogResponse
+	(*MigrateEmbeddingsRequest)(nil),     // 42: omnethdb.v1.MigrateEmbeddingsRequest
+	(*StatusResponse)(nil),               // 43: omnethdb.v1.StatusResponse
+	nil,                                  // 44: omnethdb.v1.SpaceWritePolicy.TrustLevelsEntry
+	nil,                                  // 45: omnethdb.v1.RuntimeConfig.SpacesEntry
+	nil,                                  // 46: omnethdb.v1.RecallRequest.SpaceWeightsEntry
+	nil,                                  // 47: omnethdb.v1.GetProfileRequest.SpaceWeightsEntry
+	(*timestamppb.Timestamp)(nil),        // 48: google.protobuf.Timestamp
+	(*structpb.Struct)(nil),              // 49: google.protobuf.Struct
 }
 var file_omnethdb_v1_omnethdb_proto_depIdxs = []int32{
 	1,  // 0: omnethdb.v1.Actor.kind:type_name -> omnethdb.v1.ActorKind
-	36, // 1: omnethdb.v1.SpaceWritePolicy.trust_levels:type_name -> omnethdb.v1.SpaceWritePolicy.TrustLevelsEntry
+	44, // 1: omnethdb.v1.SpaceWritePolicy.trust_levels:type_name -> omnethdb.v1.SpaceWritePolicy.TrustLevelsEntry
 	5,  // 2: omnethdb.v1.SpaceWritePolicy.episodic_writers:type_name -> omnethdb.v1.WritersPolicy
 	5,  // 3: omnethdb.v1.SpaceWritePolicy.static_writers:type_name -> omnethdb.v1.WritersPolicy
 	5,  // 4: omnethdb.v1.SpaceWritePolicy.derived_writers:type_name -> omnethdb.v1.WritersPolicy
 	5,  // 5: omnethdb.v1.SpaceWritePolicy.promote_policy:type_name -> omnethdb.v1.WritersPolicy
 	6,  // 6: omnethdb.v1.SpaceConfig.write_policy:type_name -> omnethdb.v1.SpaceWritePolicy
-	40, // 7: omnethdb.v1.SpaceConfig.migration_started_at:type_name -> google.protobuf.Timestamp
+	48, // 7: omnethdb.v1.SpaceConfig.migration_started_at:type_name -> google.protobuf.Timestamp
 	0,  // 8: omnethdb.v1.Memory.kind:type_name -> omnethdb.v1.MemoryKind
 	3,  // 9: omnethdb.v1.Memory.actor:type_name -> omnethdb.v1.Actor
-	40, // 10: omnethdb.v1.Memory.forget_after:type_name -> google.protobuf.Timestamp
+	48, // 10: omnethdb.v1.Memory.forget_after:type_name -> google.protobuf.Timestamp
 	4,  // 11: omnethdb.v1.Memory.relations:type_name -> omnethdb.v1.MemoryRelations
-	41, // 12: omnethdb.v1.Memory.metadata:type_name -> google.protobuf.Struct
-	40, // 13: omnethdb.v1.Memory.created_at:type_name -> google.protobuf.Timestamp
+	49, // 12: omnethdb.v1.Memory.metadata:type_name -> google.protobuf.Struct
+	48, // 13: omnethdb.v1.Memory.created_at:type_name -> google.protobuf.Timestamp
 	8,  // 14: omnethdb.v1.ScoredMemory.memory:type_name -> omnethdb.v1.Memory
 	9,  // 15: omnethdb.v1.MemoryProfile.static:type_name -> omnethdb.v1.ScoredMemory
 	9,  // 16: omnethdb.v1.MemoryProfile.episodic:type_name -> omnethdb.v1.ScoredMemory
-	40, // 17: omnethdb.v1.AuditEntry.timestamp:type_name -> google.protobuf.Timestamp
+	48, // 17: omnethdb.v1.AuditEntry.timestamp:type_name -> google.protobuf.Timestamp
 	3,  // 18: omnethdb.v1.AuditEntry.actor:type_name -> omnethdb.v1.Actor
 	12, // 19: omnethdb.v1.RuntimeSpaceSettings.embedder:type_name -> omnethdb.v1.RuntimeEmbedderConfig
-	37, // 20: omnethdb.v1.RuntimeConfig.spaces:type_name -> omnethdb.v1.RuntimeConfig.SpacesEntry
+	45, // 20: omnethdb.v1.RuntimeConfig.spaces:type_name -> omnethdb.v1.RuntimeConfig.SpacesEntry
 	14, // 21: omnethdb.v1.GetRuntimeConfigResponse.config:type_name -> omnethdb.v1.RuntimeConfig
 	0,  // 22: omnethdb.v1.RememberRequest.kind:type_name -> omnethdb.v1.MemoryKind
 	3,  // 23: omnethdb.v1.RememberRequest.actor:type_name -> omnethdb.v1.Actor
-	40, // 24: omnethdb.v1.RememberRequest.forget_after:type_name -> google.protobuf.Timestamp
-	41, // 25: omnethdb.v1.RememberRequest.metadata:type_name -> google.protobuf.Struct
+	48, // 24: omnethdb.v1.RememberRequest.forget_after:type_name -> google.protobuf.Timestamp
+	49, // 25: omnethdb.v1.RememberRequest.metadata:type_name -> google.protobuf.Struct
 	4,  // 26: omnethdb.v1.RememberRequest.relations:type_name -> omnethdb.v1.MemoryRelations
-	38, // 27: omnethdb.v1.RecallRequest.space_weights:type_name -> omnethdb.v1.RecallRequest.SpaceWeightsEntry
+	46, // 27: omnethdb.v1.RecallRequest.space_weights:type_name -> omnethdb.v1.RecallRequest.SpaceWeightsEntry
 	0,  // 28: omnethdb.v1.RecallRequest.kinds:type_name -> omnethdb.v1.MemoryKind
 	9,  // 29: omnethdb.v1.RecallResponse.memories:type_name -> omnethdb.v1.ScoredMemory
-	39, // 30: omnethdb.v1.GetProfileRequest.space_weights:type_name -> omnethdb.v1.GetProfileRequest.SpaceWeightsEntry
-	3,  // 31: omnethdb.v1.ForgetRequest.actor:type_name -> omnethdb.v1.Actor
-	0,  // 32: omnethdb.v1.ReviveRequest.kind:type_name -> omnethdb.v1.MemoryKind
-	3,  // 33: omnethdb.v1.ReviveRequest.actor:type_name -> omnethdb.v1.Actor
-	41, // 34: omnethdb.v1.ReviveRequest.metadata:type_name -> google.protobuf.Struct
-	8,  // 35: omnethdb.v1.LineageResponse.memories:type_name -> omnethdb.v1.Memory
-	2,  // 36: omnethdb.v1.GetRelatedRequest.relation:type_name -> omnethdb.v1.RelationType
-	8,  // 37: omnethdb.v1.RelatedResponse.memories:type_name -> omnethdb.v1.Memory
-	40, // 38: omnethdb.v1.GetAuditLogRequest.since:type_name -> google.protobuf.Timestamp
-	11, // 39: omnethdb.v1.AuditLogResponse.entries:type_name -> omnethdb.v1.AuditEntry
-	13, // 40: omnethdb.v1.RuntimeConfig.SpacesEntry.value:type_name -> omnethdb.v1.RuntimeSpaceSettings
-	15, // 41: omnethdb.v1.OmnethDB.Health:input_type -> omnethdb.v1.HealthRequest
-	17, // 42: omnethdb.v1.OmnethDB.GetRuntimeConfig:input_type -> omnethdb.v1.GetRuntimeConfigRequest
-	19, // 43: omnethdb.v1.OmnethDB.InitSpace:input_type -> omnethdb.v1.InitSpaceRequest
-	20, // 44: omnethdb.v1.OmnethDB.GetSpaceConfig:input_type -> omnethdb.v1.GetSpaceConfigRequest
-	21, // 45: omnethdb.v1.OmnethDB.Remember:input_type -> omnethdb.v1.RememberRequest
-	22, // 46: omnethdb.v1.OmnethDB.Recall:input_type -> omnethdb.v1.RecallRequest
-	24, // 47: omnethdb.v1.OmnethDB.GetProfile:input_type -> omnethdb.v1.GetProfileRequest
-	25, // 48: omnethdb.v1.OmnethDB.FindCandidates:input_type -> omnethdb.v1.FindCandidatesRequest
-	26, // 49: omnethdb.v1.OmnethDB.Forget:input_type -> omnethdb.v1.ForgetRequest
-	27, // 50: omnethdb.v1.OmnethDB.Revive:input_type -> omnethdb.v1.ReviveRequest
-	28, // 51: omnethdb.v1.OmnethDB.GetLineage:input_type -> omnethdb.v1.GetLineageRequest
-	30, // 52: omnethdb.v1.OmnethDB.GetRelated:input_type -> omnethdb.v1.GetRelatedRequest
-	32, // 53: omnethdb.v1.OmnethDB.GetAuditLog:input_type -> omnethdb.v1.GetAuditLogRequest
-	34, // 54: omnethdb.v1.OmnethDB.MigrateEmbeddings:input_type -> omnethdb.v1.MigrateEmbeddingsRequest
-	16, // 55: omnethdb.v1.OmnethDB.Health:output_type -> omnethdb.v1.HealthResponse
-	18, // 56: omnethdb.v1.OmnethDB.GetRuntimeConfig:output_type -> omnethdb.v1.GetRuntimeConfigResponse
-	7,  // 57: omnethdb.v1.OmnethDB.InitSpace:output_type -> omnethdb.v1.SpaceConfig
-	7,  // 58: omnethdb.v1.OmnethDB.GetSpaceConfig:output_type -> omnethdb.v1.SpaceConfig
-	8,  // 59: omnethdb.v1.OmnethDB.Remember:output_type -> omnethdb.v1.Memory
-	23, // 60: omnethdb.v1.OmnethDB.Recall:output_type -> omnethdb.v1.RecallResponse
-	10, // 61: omnethdb.v1.OmnethDB.GetProfile:output_type -> omnethdb.v1.MemoryProfile
-	23, // 62: omnethdb.v1.OmnethDB.FindCandidates:output_type -> omnethdb.v1.RecallResponse
-	35, // 63: omnethdb.v1.OmnethDB.Forget:output_type -> omnethdb.v1.StatusResponse
-	8,  // 64: omnethdb.v1.OmnethDB.Revive:output_type -> omnethdb.v1.Memory
-	29, // 65: omnethdb.v1.OmnethDB.GetLineage:output_type -> omnethdb.v1.LineageResponse
-	31, // 66: omnethdb.v1.OmnethDB.GetRelated:output_type -> omnethdb.v1.RelatedResponse
-	33, // 67: omnethdb.v1.OmnethDB.GetAuditLog:output_type -> omnethdb.v1.AuditLogResponse
-	7,  // 68: omnethdb.v1.OmnethDB.MigrateEmbeddings:output_type -> omnethdb.v1.SpaceConfig
-	55, // [55:69] is the sub-list for method output_type
-	41, // [41:55] is the sub-list for method input_type
-	41, // [41:41] is the sub-list for extension type_name
-	41, // [41:41] is the sub-list for extension extendee
-	0,  // [0:41] is the sub-list for field type_name
+	47, // 30: omnethdb.v1.GetProfileRequest.space_weights:type_name -> omnethdb.v1.GetProfileRequest.SpaceWeightsEntry
+	48, // 31: omnethdb.v1.SynthesisCandidateMember.created_at:type_name -> google.protobuf.Timestamp
+	48, // 32: omnethdb.v1.SynthesisCandidate.time_span_start:type_name -> google.protobuf.Timestamp
+	48, // 33: omnethdb.v1.SynthesisCandidate.time_span_end:type_name -> google.protobuf.Timestamp
+	27, // 34: omnethdb.v1.SynthesisCandidate.members:type_name -> omnethdb.v1.SynthesisCandidateMember
+	48, // 35: omnethdb.v1.SynthesisCandidatesResponse.generated_at:type_name -> google.protobuf.Timestamp
+	28, // 36: omnethdb.v1.SynthesisCandidatesResponse.candidates:type_name -> omnethdb.v1.SynthesisCandidate
+	48, // 37: omnethdb.v1.PromotionSuggestionMemory.created_at:type_name -> google.protobuf.Timestamp
+	48, // 38: omnethdb.v1.PromotionSuggestion.first_seen_at:type_name -> google.protobuf.Timestamp
+	48, // 39: omnethdb.v1.PromotionSuggestion.last_seen_at:type_name -> google.protobuf.Timestamp
+	31, // 40: omnethdb.v1.PromotionSuggestion.memory:type_name -> omnethdb.v1.PromotionSuggestionMemory
+	48, // 41: omnethdb.v1.PromotionSuggestionsResponse.generated_at:type_name -> google.protobuf.Timestamp
+	32, // 42: omnethdb.v1.PromotionSuggestionsResponse.suggestions:type_name -> omnethdb.v1.PromotionSuggestion
+	3,  // 43: omnethdb.v1.ForgetRequest.actor:type_name -> omnethdb.v1.Actor
+	0,  // 44: omnethdb.v1.ReviveRequest.kind:type_name -> omnethdb.v1.MemoryKind
+	3,  // 45: omnethdb.v1.ReviveRequest.actor:type_name -> omnethdb.v1.Actor
+	49, // 46: omnethdb.v1.ReviveRequest.metadata:type_name -> google.protobuf.Struct
+	8,  // 47: omnethdb.v1.LineageResponse.memories:type_name -> omnethdb.v1.Memory
+	2,  // 48: omnethdb.v1.GetRelatedRequest.relation:type_name -> omnethdb.v1.RelationType
+	8,  // 49: omnethdb.v1.RelatedResponse.memories:type_name -> omnethdb.v1.Memory
+	48, // 50: omnethdb.v1.GetAuditLogRequest.since:type_name -> google.protobuf.Timestamp
+	11, // 51: omnethdb.v1.AuditLogResponse.entries:type_name -> omnethdb.v1.AuditEntry
+	13, // 52: omnethdb.v1.RuntimeConfig.SpacesEntry.value:type_name -> omnethdb.v1.RuntimeSpaceSettings
+	15, // 53: omnethdb.v1.OmnethDB.Health:input_type -> omnethdb.v1.HealthRequest
+	17, // 54: omnethdb.v1.OmnethDB.GetRuntimeConfig:input_type -> omnethdb.v1.GetRuntimeConfigRequest
+	19, // 55: omnethdb.v1.OmnethDB.InitSpace:input_type -> omnethdb.v1.InitSpaceRequest
+	20, // 56: omnethdb.v1.OmnethDB.GetSpaceConfig:input_type -> omnethdb.v1.GetSpaceConfigRequest
+	21, // 57: omnethdb.v1.OmnethDB.Remember:input_type -> omnethdb.v1.RememberRequest
+	22, // 58: omnethdb.v1.OmnethDB.Recall:input_type -> omnethdb.v1.RecallRequest
+	24, // 59: omnethdb.v1.OmnethDB.GetProfile:input_type -> omnethdb.v1.GetProfileRequest
+	25, // 60: omnethdb.v1.OmnethDB.FindCandidates:input_type -> omnethdb.v1.FindCandidatesRequest
+	26, // 61: omnethdb.v1.OmnethDB.SynthesisCandidates:input_type -> omnethdb.v1.SynthesisCandidatesRequest
+	30, // 62: omnethdb.v1.OmnethDB.PromotionSuggestions:input_type -> omnethdb.v1.PromotionSuggestionsRequest
+	34, // 63: omnethdb.v1.OmnethDB.Forget:input_type -> omnethdb.v1.ForgetRequest
+	35, // 64: omnethdb.v1.OmnethDB.Revive:input_type -> omnethdb.v1.ReviveRequest
+	36, // 65: omnethdb.v1.OmnethDB.GetLineage:input_type -> omnethdb.v1.GetLineageRequest
+	38, // 66: omnethdb.v1.OmnethDB.GetRelated:input_type -> omnethdb.v1.GetRelatedRequest
+	40, // 67: omnethdb.v1.OmnethDB.GetAuditLog:input_type -> omnethdb.v1.GetAuditLogRequest
+	42, // 68: omnethdb.v1.OmnethDB.MigrateEmbeddings:input_type -> omnethdb.v1.MigrateEmbeddingsRequest
+	16, // 69: omnethdb.v1.OmnethDB.Health:output_type -> omnethdb.v1.HealthResponse
+	18, // 70: omnethdb.v1.OmnethDB.GetRuntimeConfig:output_type -> omnethdb.v1.GetRuntimeConfigResponse
+	7,  // 71: omnethdb.v1.OmnethDB.InitSpace:output_type -> omnethdb.v1.SpaceConfig
+	7,  // 72: omnethdb.v1.OmnethDB.GetSpaceConfig:output_type -> omnethdb.v1.SpaceConfig
+	8,  // 73: omnethdb.v1.OmnethDB.Remember:output_type -> omnethdb.v1.Memory
+	23, // 74: omnethdb.v1.OmnethDB.Recall:output_type -> omnethdb.v1.RecallResponse
+	10, // 75: omnethdb.v1.OmnethDB.GetProfile:output_type -> omnethdb.v1.MemoryProfile
+	23, // 76: omnethdb.v1.OmnethDB.FindCandidates:output_type -> omnethdb.v1.RecallResponse
+	29, // 77: omnethdb.v1.OmnethDB.SynthesisCandidates:output_type -> omnethdb.v1.SynthesisCandidatesResponse
+	33, // 78: omnethdb.v1.OmnethDB.PromotionSuggestions:output_type -> omnethdb.v1.PromotionSuggestionsResponse
+	43, // 79: omnethdb.v1.OmnethDB.Forget:output_type -> omnethdb.v1.StatusResponse
+	8,  // 80: omnethdb.v1.OmnethDB.Revive:output_type -> omnethdb.v1.Memory
+	37, // 81: omnethdb.v1.OmnethDB.GetLineage:output_type -> omnethdb.v1.LineageResponse
+	39, // 82: omnethdb.v1.OmnethDB.GetRelated:output_type -> omnethdb.v1.RelatedResponse
+	41, // 83: omnethdb.v1.OmnethDB.GetAuditLog:output_type -> omnethdb.v1.AuditLogResponse
+	7,  // 84: omnethdb.v1.OmnethDB.MigrateEmbeddings:output_type -> omnethdb.v1.SpaceConfig
+	69, // [69:85] is the sub-list for method output_type
+	53, // [53:69] is the sub-list for method input_type
+	53, // [53:53] is the sub-list for extension type_name
+	53, // [53:53] is the sub-list for extension extendee
+	0,  // [0:53] is the sub-list for field type_name
 }
 
 func init() { file_omnethdb_v1_omnethdb_proto_init() }
@@ -2772,7 +3715,7 @@ func file_omnethdb_v1_omnethdb_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_omnethdb_v1_omnethdb_proto_rawDesc), len(file_omnethdb_v1_omnethdb_proto_rawDesc)),
 			NumEnums:      3,
-			NumMessages:   37,
+			NumMessages:   45,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

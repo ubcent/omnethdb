@@ -793,6 +793,369 @@ func TestPromotionSuggestionsDowngradeChurnySupportClustersToReviewOnly(t *testi
 	}
 }
 
+func TestSynthesisCandidatesDowngradeSameTopicOperationalChatterToReviewOnly(t *testing.T) {
+	t.Parallel()
+
+	embedder := mapEmbedder{
+		modelID:    "test/synthesis-chatter",
+		dimensions: 2,
+		vectors: map[string][]float32{
+			"payments cache timeout investigating retry path":      {1, 0},
+			"payments cache timeout mitigation retried by on call": {0.98, 0.02},
+			"payments cache timeout monitoring stayed noisy":       {0.97, 0.03},
+			"unrelated atomic schema observation":                  {0, 1},
+		},
+	}
+	store := newRememberTestStoreWithEmbedderAndPolicy(t, "repo:company/app", memory.SpaceWritePolicy{
+		HumanTrust:        1.0,
+		SystemTrust:       1.0,
+		DefaultAgentTrust: 0.7,
+		EpisodicWriters:   memory.WritersPolicy{AllowHuman: true, AllowSystem: true, AllowAllAgents: true},
+		StaticWriters:     memory.WritersPolicy{AllowHuman: true, AllowSystem: true, AllowAllAgents: true},
+		DerivedWriters:    memory.WritersPolicy{AllowHuman: true, AllowAllAgents: true},
+		PromotePolicy:     memory.WritersPolicy{AllowHuman: true},
+	}, embedder)
+
+	for _, input := range []memory.MemoryInput{
+		{
+			SpaceID:    "repo:company/app",
+			Content:    "payments cache timeout investigating retry path",
+			Kind:       memory.KindEpisodic,
+			Actor:      memory.Actor{ID: "agent:one", Kind: memory.ActorAgent},
+			Confidence: 0.78,
+		},
+		{
+			SpaceID:    "repo:company/app",
+			Content:    "payments cache timeout mitigation retried by on call",
+			Kind:       memory.KindEpisodic,
+			Actor:      memory.Actor{ID: "agent:two", Kind: memory.ActorAgent},
+			Confidence: 0.8,
+		},
+		{
+			SpaceID:    "repo:company/app",
+			Content:    "payments cache timeout monitoring stayed noisy",
+			Kind:       memory.KindEpisodic,
+			Actor:      memory.Actor{ID: "user:alice", Kind: memory.ActorHuman},
+			Confidence: 0.82,
+		},
+		{
+			SpaceID:    "repo:company/app",
+			Content:    "unrelated atomic schema observation",
+			Kind:       memory.KindEpisodic,
+			Actor:      memory.Actor{ID: "agent:three", Kind: memory.ActorAgent},
+			Confidence: 0.6,
+		},
+	} {
+		if _, err := store.Remember(input); err != nil {
+			t.Fatalf("Remember returned unexpected error: %v", err)
+		}
+	}
+
+	result, err := store.GetSynthesisCandidates(memory.SynthesisCandidatesRequest{
+		SpaceID: "repo:company/app",
+	})
+	if err != nil {
+		t.Fatalf("GetSynthesisCandidates returned unexpected error: %v", err)
+	}
+	if len(result.Candidates) == 0 {
+		t.Fatalf("expected synthesis candidate, got %#v", result)
+	}
+	if result.Candidates[0].SuggestedAction != "review_only" {
+		t.Fatalf("expected operational chatter cluster to downgrade to review_only, got %#v", result.Candidates[0])
+	}
+	if !hasReasonCode(result.Candidates[0].ReasonCodes, "episodic_chatter") {
+		t.Fatalf("expected episodic_chatter reason code, got %#v", result.Candidates[0])
+	}
+}
+
+func TestSynthesisCandidatesDowngradeContradictorySupportClustersToReviewOnly(t *testing.T) {
+	t.Parallel()
+
+	embedder := mapEmbedder{
+		modelID:    "test/synthesis-contradiction",
+		dimensions: 2,
+		vectors: map[string][]float32{
+			"migration approvals are required before deploy":            {1, 0},
+			"migration approvals are optional during emergency deploys": {0.98, 0.02},
+			"migration approvals are no longer required in emergencies": {0.97, 0.03},
+			"unrelated runtime note":                                    {0, 1},
+		},
+	}
+	store := newRememberTestStoreWithEmbedderAndPolicy(t, "repo:company/app", memory.SpaceWritePolicy{
+		HumanTrust:        1.0,
+		SystemTrust:       1.0,
+		DefaultAgentTrust: 0.7,
+		EpisodicWriters:   memory.WritersPolicy{AllowHuman: true, AllowSystem: true, AllowAllAgents: true},
+		StaticWriters:     memory.WritersPolicy{AllowHuman: true, AllowSystem: true, AllowAllAgents: true},
+		DerivedWriters:    memory.WritersPolicy{AllowHuman: true, AllowAllAgents: true},
+		PromotePolicy:     memory.WritersPolicy{AllowHuman: true},
+	}, embedder)
+
+	for _, input := range []memory.MemoryInput{
+		{
+			SpaceID:    "repo:company/app",
+			Content:    "migration approvals are required before deploy",
+			Kind:       memory.KindEpisodic,
+			Actor:      memory.Actor{ID: "agent:one", Kind: memory.ActorAgent},
+			Confidence: 0.8,
+		},
+		{
+			SpaceID:    "repo:company/app",
+			Content:    "migration approvals are optional during emergency deploys",
+			Kind:       memory.KindEpisodic,
+			Actor:      memory.Actor{ID: "agent:two", Kind: memory.ActorAgent},
+			Confidence: 0.82,
+		},
+		{
+			SpaceID:    "repo:company/app",
+			Content:    "migration approvals are no longer required in emergencies",
+			Kind:       memory.KindEpisodic,
+			Actor:      memory.Actor{ID: "user:alice", Kind: memory.ActorHuman},
+			Confidence: 0.84,
+		},
+		{
+			SpaceID:    "repo:company/app",
+			Content:    "unrelated runtime note",
+			Kind:       memory.KindEpisodic,
+			Actor:      memory.Actor{ID: "agent:three", Kind: memory.ActorAgent},
+			Confidence: 0.5,
+		},
+	} {
+		if _, err := store.Remember(input); err != nil {
+			t.Fatalf("Remember returned unexpected error: %v", err)
+		}
+	}
+
+	result, err := store.GetSynthesisCandidates(memory.SynthesisCandidatesRequest{
+		SpaceID: "repo:company/app",
+	})
+	if err != nil {
+		t.Fatalf("GetSynthesisCandidates returned unexpected error: %v", err)
+	}
+	if len(result.Candidates) == 0 {
+		t.Fatalf("expected synthesis candidate, got %#v", result)
+	}
+	if result.Candidates[0].SuggestedAction != "review_only" {
+		t.Fatalf("expected contradictory support cluster to downgrade to review_only, got %#v", result.Candidates[0])
+	}
+	if !hasReasonCode(result.Candidates[0].ReasonCodes, "possible_contradiction") {
+		t.Fatalf("expected possible_contradiction reason code, got %#v", result.Candidates[0])
+	}
+}
+
+func TestPromotionSuggestionsDowngradeHighSimilarityParaphrasesWithoutIndependentSupport(t *testing.T) {
+	t.Parallel()
+
+	embedder := mapEmbedder{
+		modelID:    "test/promotion-paraphrase",
+		dimensions: 2,
+		vectors: map[string][]float32{
+			"service requires signed cursor pagination":        {1, 0},
+			"service uses signed cursor pagination everywhere": {0.99, 0.01},
+			"signed cursor pagination is required for service": {0.98, 0.02},
+			"unrelated deploy note":                            {0, 1},
+		},
+	}
+	store := newRememberTestStoreWithEmbedderAndPolicy(t, "repo:company/app", memory.SpaceWritePolicy{
+		HumanTrust:        1.0,
+		SystemTrust:       1.0,
+		DefaultAgentTrust: 0.7,
+		EpisodicWriters:   memory.WritersPolicy{AllowHuman: true, AllowSystem: true, AllowAllAgents: true},
+		StaticWriters:     memory.WritersPolicy{AllowHuman: true, AllowSystem: true, AllowAllAgents: true},
+		DerivedWriters:    memory.WritersPolicy{AllowHuman: true, AllowAllAgents: true},
+		PromotePolicy:     memory.WritersPolicy{AllowHuman: true},
+	}, embedder)
+
+	for _, content := range []string{
+		"service requires signed cursor pagination",
+		"service uses signed cursor pagination everywhere",
+		"signed cursor pagination is required for service",
+		"unrelated deploy note",
+	} {
+		if _, err := store.Remember(memory.MemoryInput{
+			SpaceID:    "repo:company/app",
+			Content:    content,
+			Kind:       memory.KindEpisodic,
+			Actor:      memory.Actor{ID: "agent:one", Kind: memory.ActorAgent},
+			Confidence: 0.82,
+		}); err != nil {
+			t.Fatalf("Remember returned unexpected error: %v", err)
+		}
+	}
+
+	result, err := store.GetPromotionSuggestions(memory.PromotionSuggestionsRequest{
+		SpaceID:             "repo:company/app",
+		MinObservationCount: 2,
+		MinDistinctActors:   1,
+		MinDistinctWindows:  1,
+		MinCumulativeScore:  2.5,
+	})
+	if err != nil {
+		t.Fatalf("GetPromotionSuggestions returned unexpected error: %v", err)
+	}
+	if len(result.Suggestions) == 0 {
+		t.Fatalf("expected promotion suggestion, got %#v", result)
+	}
+	if result.Suggestions[0].SuggestedAction != "review_only" {
+		t.Fatalf("expected paraphrase-only support to downgrade to review_only, got %#v", result.Suggestions[0])
+	}
+	if !hasReasonCode(result.Suggestions[0].ReasonCodes, "weak_independent_support") {
+		t.Fatalf("expected weak_independent_support reason code, got %#v", result.Suggestions[0])
+	}
+}
+
+func TestPromotionSuggestionsDowngradeOperationalChatterClustersToReviewOnly(t *testing.T) {
+	t.Parallel()
+
+	embedder := mapEmbedder{
+		modelID:    "test/promotion-chatter",
+		dimensions: 2,
+		vectors: map[string][]float32{
+			"payments rollback investigation remained noisy":  {1, 0},
+			"payments rollback mitigation retried by on call": {0.98, 0.02},
+			"payments rollback monitoring stayed temporary":   {0.97, 0.03},
+			"unrelated profile note":                          {0, 1},
+		},
+	}
+	store := newRememberTestStoreWithEmbedderAndPolicy(t, "repo:company/app", memory.SpaceWritePolicy{
+		HumanTrust:        1.0,
+		SystemTrust:       1.0,
+		DefaultAgentTrust: 0.7,
+		EpisodicWriters:   memory.WritersPolicy{AllowHuman: true, AllowSystem: true, AllowAllAgents: true},
+		StaticWriters:     memory.WritersPolicy{AllowHuman: true, AllowSystem: true, AllowAllAgents: true},
+		DerivedWriters:    memory.WritersPolicy{AllowHuman: true, AllowAllAgents: true},
+		PromotePolicy:     memory.WritersPolicy{AllowHuman: true},
+	}, embedder)
+
+	for _, input := range []memory.MemoryInput{
+		{
+			SpaceID:    "repo:company/app",
+			Content:    "payments rollback investigation remained noisy",
+			Kind:       memory.KindEpisodic,
+			Actor:      memory.Actor{ID: "agent:one", Kind: memory.ActorAgent},
+			Confidence: 0.8,
+		},
+		{
+			SpaceID:    "repo:company/app",
+			Content:    "payments rollback mitigation retried by on call",
+			Kind:       memory.KindEpisodic,
+			Actor:      memory.Actor{ID: "agent:two", Kind: memory.ActorAgent},
+			Confidence: 0.82,
+		},
+		{
+			SpaceID:    "repo:company/app",
+			Content:    "payments rollback monitoring stayed temporary",
+			Kind:       memory.KindEpisodic,
+			Actor:      memory.Actor{ID: "user:alice", Kind: memory.ActorHuman},
+			Confidence: 0.84,
+		},
+		{
+			SpaceID:    "repo:company/app",
+			Content:    "unrelated profile note",
+			Kind:       memory.KindEpisodic,
+			Actor:      memory.Actor{ID: "agent:three", Kind: memory.ActorAgent},
+			Confidence: 0.5,
+		},
+	} {
+		if _, err := store.Remember(input); err != nil {
+			t.Fatalf("Remember returned unexpected error: %v", err)
+		}
+	}
+
+	result, err := store.GetPromotionSuggestions(memory.PromotionSuggestionsRequest{
+		SpaceID:             "repo:company/app",
+		MinObservationCount: 2,
+		MinDistinctActors:   2,
+		MinDistinctWindows:  1,
+		MinCumulativeScore:  2.5,
+	})
+	if err != nil {
+		t.Fatalf("GetPromotionSuggestions returned unexpected error: %v", err)
+	}
+	if len(result.Suggestions) == 0 {
+		t.Fatalf("expected promotion suggestion, got %#v", result)
+	}
+	if result.Suggestions[0].SuggestedAction != "review_only" {
+		t.Fatalf("expected operational chatter support to downgrade to review_only, got %#v", result.Suggestions[0])
+	}
+	if !hasReasonCode(result.Suggestions[0].ReasonCodes, "episodic_chatter") {
+		t.Fatalf("expected episodic_chatter reason code, got %#v", result.Suggestions[0])
+	}
+}
+
+func TestPromotionSuggestionsDowngradeMixedBlobAndAtomicSupportToReviewOnly(t *testing.T) {
+	t.Parallel()
+
+	blob := "Release coordination notes; rollback owner assignment; migration cleanup checklist; deploy validation steps; staging verification summary; smoke test scope; launch communication draft; release gating notes; owner handoff status; rollout checklist for release coordinators."
+
+	embedder := mapEmbedder{
+		modelID:    "test/promotion-mixed-blob",
+		dimensions: 2,
+		vectors: map[string][]float32{
+			blob: {1, 0},
+			"release requires a smoke test before deploy": {0.98, 0.02},
+			"unrelated cache note":                        {0, 1},
+		},
+	}
+	store := newRememberTestStoreWithEmbedderAndPolicy(t, "repo:company/app", memory.SpaceWritePolicy{
+		HumanTrust:        1.0,
+		SystemTrust:       1.0,
+		DefaultAgentTrust: 0.7,
+		EpisodicWriters:   memory.WritersPolicy{AllowHuman: true, AllowSystem: true, AllowAllAgents: true},
+		StaticWriters:     memory.WritersPolicy{AllowHuman: true, AllowSystem: true, AllowAllAgents: true},
+		DerivedWriters:    memory.WritersPolicy{AllowHuman: true, AllowAllAgents: true},
+		PromotePolicy:     memory.WritersPolicy{AllowHuman: true},
+	}, embedder)
+
+	for _, input := range []memory.MemoryInput{
+		{
+			SpaceID:    "repo:company/app",
+			Content:    blob,
+			Kind:       memory.KindEpisodic,
+			Actor:      memory.Actor{ID: "agent:one", Kind: memory.ActorAgent},
+			Confidence: 0.78,
+		},
+		{
+			SpaceID:    "repo:company/app",
+			Content:    "release requires a smoke test before deploy",
+			Kind:       memory.KindEpisodic,
+			Actor:      memory.Actor{ID: "user:alice", Kind: memory.ActorHuman},
+			Confidence: 0.92,
+		},
+		{
+			SpaceID:    "repo:company/app",
+			Content:    "unrelated cache note",
+			Kind:       memory.KindEpisodic,
+			Actor:      memory.Actor{ID: "agent:three", Kind: memory.ActorAgent},
+			Confidence: 0.4,
+		},
+	} {
+		if _, err := store.Remember(input); err != nil {
+			t.Fatalf("Remember returned unexpected error: %v", err)
+		}
+	}
+
+	result, err := store.GetPromotionSuggestions(memory.PromotionSuggestionsRequest{
+		SpaceID:             "repo:company/app",
+		MinObservationCount: 2,
+		MinDistinctActors:   1,
+		MinDistinctWindows:  1,
+		MinCumulativeScore:  1.8,
+	})
+	if err != nil {
+		t.Fatalf("GetPromotionSuggestions returned unexpected error: %v", err)
+	}
+	if len(result.Suggestions) == 0 {
+		t.Fatalf("expected promotion suggestion, got %#v", result)
+	}
+	if result.Suggestions[0].SuggestedAction != "review_only" {
+		t.Fatalf("expected mixed blob-like support to downgrade to review_only, got %#v", result.Suggestions[0])
+	}
+	if !hasReasonCode(result.Suggestions[0].ReasonCodes, "mixed_fact_blob") {
+		t.Fatalf("expected mixed_fact_blob reason code, got %#v", result.Suggestions[0])
+	}
+}
+
 func scoredMemoryIDs(items []memory.ScoredMemory) []string {
 	out := make([]string, 0, len(items))
 	for _, item := range items {

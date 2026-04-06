@@ -378,9 +378,15 @@ func buildSynthesisCandidates(memories []memory.Memory, pairs []memory.MemorySim
 		if group.hasBlob {
 			reasonCodes = append(reasonCodes, "mixed_fact_blob")
 		}
+		if group.hasContradiction {
+			reasonCodes = append(reasonCodes, "possible_contradiction")
+		}
+		if group.hasEpisodicChatter {
+			reasonCodes = append(reasonCodes, "episodic_chatter")
+		}
 
 		action := "review_for_derived"
-		if group.hasBlob {
+		if group.hasBlob || group.hasContradiction || group.hasEpisodicChatter {
 			action = "review_only"
 		}
 
@@ -451,15 +457,21 @@ func buildPromotionSuggestions(memories []memory.Memory, pairs []memory.MemorySi
 		if group.hasBlob {
 			reasonCodes = append(reasonCodes, "mixed_fact_blob")
 		}
+		if group.hasEpisodicChatter {
+			reasonCodes = append(reasonCodes, "episodic_chatter")
+		}
 		if churnRisk > 0.25 {
 			reasonCodes = append(reasonCodes, "high_churn")
 		}
 		if contradictionRisk > 0.20 {
 			reasonCodes = append(reasonCodes, "possible_contradiction")
 		}
+		if group.distinctActors < 2 && group.distinctWindows < 2 {
+			reasonCodes = append(reasonCodes, "weak_independent_support")
+		}
 
 		action := "review_for_promotion"
-		if group.hasBlob || churnRisk > 0.35 {
+		if group.hasBlob || group.hasContradiction || group.hasEpisodicChatter || churnRisk > 0.35 || (group.distinctActors < 2 && group.distinctWindows < 2) {
 			action = "review_only"
 		}
 
@@ -521,6 +533,7 @@ type similarityGroup struct {
 	maxScore           float32
 	hasBlob            bool
 	hasContradiction   bool
+	hasEpisodicChatter bool
 }
 
 func buildSimilarityGroups(memories []memory.Memory, pairs []memory.MemorySimilarityPair, minClusterSize int) []similarityGroup {
@@ -636,6 +649,7 @@ func summarizeSimilarityGroup(ids []string, memories []memory.Memory, pairs []me
 		group.normalizedContents[normalizeLintText(mem.Content)] = struct{}{}
 		group.hasBlob = group.hasBlob || detectMixedFactBlob(memory.MemoryInput{Content: mem.Content}) != nil
 		group.hasContradiction = group.hasContradiction || contentHasContradictionCue(mem.Content)
+		group.hasEpisodicChatter = group.hasEpisodicChatter || contentHasEpisodicChatterCue(mem.Content)
 		if group.start.IsZero() || mem.CreatedAt.Before(group.start) {
 			group.start = mem.CreatedAt
 		}
@@ -742,6 +756,35 @@ func contentHasContradictionCue(content string) bool {
 		" temporarily ",
 		" not required ",
 		" no longer ",
+	} {
+		if strings.Contains(normalized, marker) {
+			return true
+		}
+	}
+	return false
+}
+
+func contentHasEpisodicChatterCue(content string) bool {
+	normalized := " " + normalizeLintText(content) + " "
+	for _, marker := range []string{
+		" investigating ",
+		" investigation ",
+		" triage ",
+		" triaged ",
+		" mitigation ",
+		" mitigated ",
+		" retry ",
+		" retried ",
+		" retrying ",
+		" monitoring ",
+		" noisy ",
+		" on call ",
+		" workaround ",
+		" rollback ",
+		" rolled back ",
+		" temporary ",
+		" unblock ",
+		" debugging ",
 	} {
 		if strings.Contains(normalized, marker) {
 			return true
