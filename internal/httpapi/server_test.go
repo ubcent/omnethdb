@@ -280,6 +280,84 @@ func TestHTTPAPIExposesQualityDiagnostics(t *testing.T) {
 	}
 }
 
+func TestHTTPAPIExposesAdvisoryCurationDiagnostics(t *testing.T) {
+	t.Parallel()
+
+	path := filepath.Join(t.TempDir(), "memory.db")
+	store, err := omnethdb.Open(path)
+	if err != nil {
+		t.Fatalf("Open returned unexpected error: %v", err)
+	}
+	t.Cleanup(func() { _ = store.Close() })
+
+	cfg := &omnethdb.RuntimeConfig{
+		Spaces: map[string]omnethdb.RuntimeSpaceSettings{
+			"repo:company/app": {
+				Embedder: omnethdb.RuntimeEmbedderConfig{
+					ModelID:    "test/http-curation",
+					Dimensions: 2,
+				},
+			},
+		},
+	}
+	store.RegisterEmbedder(mappedEmbedder{
+		modelID:    "test/http-curation",
+		dimensions: 2,
+		vectors: map[string][]float32{
+			"job run failed with cache timeout":         {1, 0},
+			"another job run failed with cache timeout": {0.98, 0.02},
+			"cache timeout affected a later job run":    {0.97, 0.03},
+			"team requires reviewed migrations":         {0, 1},
+			"repository requires reviewed migrations":   {0.02, 0.98},
+			"migration policy requires review approval": {0.03, 0.97},
+		},
+	})
+	server := httptest.NewServer(NewHandler(store, cfg))
+	defer server.Close()
+
+	doJSON(t, http.MethodPost, server.URL+"/v1/spaces/init", map[string]any{
+		"space_id": "repo:company/app",
+	}, http.StatusOK, nil)
+
+	for _, item := range []struct {
+		content string
+		actor   omnethdb.Actor
+	}{
+		{"job run failed with cache timeout", omnethdb.Actor{ID: "agent:one", Kind: omnethdb.ActorAgent}},
+		{"another job run failed with cache timeout", omnethdb.Actor{ID: "agent:two", Kind: omnethdb.ActorAgent}},
+		{"cache timeout affected a later job run", omnethdb.Actor{ID: "user:alice", Kind: omnethdb.ActorHuman}},
+		{"team requires reviewed migrations", omnethdb.Actor{ID: "agent:one", Kind: omnethdb.ActorAgent}},
+		{"repository requires reviewed migrations", omnethdb.Actor{ID: "agent:two", Kind: omnethdb.ActorAgent}},
+		{"migration policy requires review approval", omnethdb.Actor{ID: "user:alice", Kind: omnethdb.ActorHuman}},
+	} {
+		doJSON(t, http.MethodPost, server.URL+"/v1/memories/remember", map[string]any{
+			"SpaceID":    "repo:company/app",
+			"Content":    item.content,
+			"Kind":       omnethdb.KindEpisodic,
+			"Actor":      item.actor,
+			"Confidence": 0.9,
+		}, http.StatusOK, nil)
+	}
+
+	var synthesis omnethdb.SynthesisCandidatesResult
+	doJSON(t, http.MethodGet, server.URL+"/v1/diagnostics/quality/synthesis-candidates?space_id=repo:company/app", nil, http.StatusOK, &synthesis)
+	if synthesis.LiveEpisodicCount != 6 {
+		t.Fatalf("unexpected live episodic count: %#v", synthesis)
+	}
+	if len(synthesis.Candidates) == 0 {
+		t.Fatalf("expected synthesis candidates, got %#v", synthesis)
+	}
+
+	var promotion omnethdb.PromotionSuggestionsResult
+	doJSON(t, http.MethodGet, server.URL+"/v1/diagnostics/quality/promotion-suggestions?space_id=repo:company/app&min_observation_count=2&min_distinct_actors=2&min_cumulative_score=2.5", nil, http.StatusOK, &promotion)
+	if promotion.LiveEpisodicCount != 6 {
+		t.Fatalf("unexpected live episodic count: %#v", promotion)
+	}
+	if len(promotion.Suggestions) == 0 {
+		t.Fatalf("expected promotion suggestions, got %#v", promotion)
+	}
+}
+
 func TestHTTPAPIExposesBatchForget(t *testing.T) {
 	t.Parallel()
 
@@ -484,7 +562,7 @@ func TestHTTPAPIExposesInspectorPage(t *testing.T) {
 	defer server.Close()
 
 	page := doText(t, http.MethodGet, server.URL+"/inspect?space_id=repo:company/app", http.StatusOK)
-	if !strings.Contains(page, "OmnethDB Inspector") || !strings.Contains(page, "/v1/export?space_id=") || !strings.Contains(page, "repo:company/app") || !strings.Contains(page, "Signals") || !strings.Contains(page, "Quality") || !strings.Contains(page, "Cleanup Plan") || !strings.Contains(page, "Live View") || !strings.Contains(page, "before_file") || !strings.Contains(page, "after_file") {
+	if !strings.Contains(page, "OmnethDB Inspector") || !strings.Contains(page, "/v1/export?space_id=") || !strings.Contains(page, "repo:company/app") || !strings.Contains(page, "Signals") || !strings.Contains(page, "Quality") || !strings.Contains(page, "Cleanup Plan") || !strings.Contains(page, "Curation Review") || !strings.Contains(page, "Live View") || !strings.Contains(page, "before_file") || !strings.Contains(page, "after_file") {
 		t.Fatalf("unexpected inspector page:\n%s", page)
 	}
 }

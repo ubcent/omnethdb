@@ -27,6 +27,8 @@ func NewOmnethDBTools(open WorkspaceOpener) []Tool {
 		memoryRecallTool{open: open},
 		memoryProfileTool{open: open},
 		memoryProfileCompactTool{open: open},
+		memorySynthesisCandidatesTool{open: open},
+		memoryPromotionSuggestionsTool{open: open},
 		memoryLineageTool{open: open},
 		memoryRelatedTool{open: open},
 		memoryExportSummaryTool{open: open},
@@ -40,6 +42,8 @@ type memoryForgetTool struct{ open WorkspaceOpener }
 type memoryRecallTool struct{ open WorkspaceOpener }
 type memoryProfileTool struct{ open WorkspaceOpener }
 type memoryProfileCompactTool struct{ open WorkspaceOpener }
+type memorySynthesisCandidatesTool struct{ open WorkspaceOpener }
+type memoryPromotionSuggestionsTool struct{ open WorkspaceOpener }
 type memoryLineageTool struct{ open WorkspaceOpener }
 type memoryRelatedTool struct{ open WorkspaceOpener }
 type memoryExportSummaryTool struct{ open WorkspaceOpener }
@@ -503,6 +507,117 @@ func (t memoryProfileCompactTool) Call(_ context.Context, args map[string]any) (
 		Episodic: compactMemories(profile.Episodic, previewChars),
 	}
 	return jsonResult(out)
+}
+
+func (t memorySynthesisCandidatesTool) Definition() ToolDefinition {
+	return ToolDefinition{
+		Name:        "memory_synthesis_candidates",
+		Description: "Advisory curator-review clusters over live episodic memories that may justify explicit synthesis review.",
+		InputSchema: objectSchema(
+			requiredProp("space_id", "string", "Target space ID."),
+			optionalProp("top_k_per_memory", "integer", "Top similar live episodic memories to inspect per seed memory."),
+			optionalProp("max_candidates", "integer", "Maximum synthesis-review clusters to return."),
+			optionalProp("min_cluster_size", "integer", "Minimum episodic memories per synthesis-review cluster."),
+			optionalProp("min_pair_score", "number", "Minimum cosine similarity for cluster edges."),
+		),
+	}
+}
+
+func (t memorySynthesisCandidatesTool) Call(_ context.Context, args map[string]any) (ToolResult, error) {
+	var req struct {
+		SpaceID        string   `json:"space_id"`
+		TopKPerMemory  int      `json:"top_k_per_memory"`
+		MaxCandidates  int      `json:"max_candidates"`
+		MinClusterSize int      `json:"min_cluster_size"`
+		MinPairScore   *float32 `json:"min_pair_score"`
+	}
+	if err := decodeArgs(args, &req); err != nil {
+		return ToolResult{}, err
+	}
+
+	store, cfg, err := t.open()
+	if err != nil {
+		return ToolResult{}, err
+	}
+	defer store.Close()
+	ensureEmbedderForSpace(store, cfg, req.SpaceID)
+
+	input := omnethdb.SynthesisCandidatesRequest{
+		SpaceID:        req.SpaceID,
+		TopKPerMemory:  req.TopKPerMemory,
+		MaxCandidates:  req.MaxCandidates,
+		MinClusterSize: req.MinClusterSize,
+	}
+	if req.MinPairScore != nil {
+		input.MinPairScore = *req.MinPairScore
+	}
+
+	result, err := store.GetSynthesisCandidates(input)
+	if err != nil {
+		return ToolResult{}, err
+	}
+	return jsonResult(result)
+}
+
+func (t memoryPromotionSuggestionsTool) Definition() ToolDefinition {
+	return ToolDefinition{
+		Name:        "memory_promotion_suggestions",
+		Description: "Advisory curator-review suggestions for live episodic memories that may deserve explicit governed promotion review.",
+		InputSchema: objectSchema(
+			requiredProp("space_id", "string", "Target space ID."),
+			optionalProp("top_k_per_memory", "integer", "Top similar live episodic memories to inspect per seed memory."),
+			optionalProp("max_suggestions", "integer", "Maximum promotion-review suggestions to return."),
+			optionalProp("min_observation_count", "integer", "Minimum similar episodic observations supporting a suggestion."),
+			optionalProp("min_distinct_actors", "integer", "Minimum distinct actors supporting a suggestion."),
+			optionalProp("min_distinct_windows", "integer", "Minimum distinct UTC date windows supporting a suggestion."),
+			optionalProp("min_cumulative_score", "number", "Minimum cumulative advisory support score."),
+			optionalProp("min_pair_score", "number", "Minimum cosine similarity for support edges."),
+		),
+	}
+}
+
+func (t memoryPromotionSuggestionsTool) Call(_ context.Context, args map[string]any) (ToolResult, error) {
+	var req struct {
+		SpaceID             string   `json:"space_id"`
+		TopKPerMemory       int      `json:"top_k_per_memory"`
+		MaxSuggestions      int      `json:"max_suggestions"`
+		MinObservationCount int      `json:"min_observation_count"`
+		MinDistinctActors   int      `json:"min_distinct_actors"`
+		MinDistinctWindows  int      `json:"min_distinct_windows"`
+		MinCumulativeScore  *float32 `json:"min_cumulative_score"`
+		MinPairScore        *float32 `json:"min_pair_score"`
+	}
+	if err := decodeArgs(args, &req); err != nil {
+		return ToolResult{}, err
+	}
+
+	store, cfg, err := t.open()
+	if err != nil {
+		return ToolResult{}, err
+	}
+	defer store.Close()
+	ensureEmbedderForSpace(store, cfg, req.SpaceID)
+
+	input := omnethdb.PromotionSuggestionsRequest{
+		SpaceID:             req.SpaceID,
+		TopKPerMemory:       req.TopKPerMemory,
+		MaxSuggestions:      req.MaxSuggestions,
+		MinObservationCount: req.MinObservationCount,
+		MinDistinctActors:   req.MinDistinctActors,
+		MinDistinctWindows:  req.MinDistinctWindows,
+	}
+	if req.MinCumulativeScore != nil {
+		input.MinCumulativeScore = *req.MinCumulativeScore
+	}
+	if req.MinPairScore != nil {
+		input.MinPairScore = *req.MinPairScore
+	}
+
+	result, err := store.GetPromotionSuggestions(input)
+	if err != nil {
+		return ToolResult{}, err
+	}
+	return jsonResult(result)
 }
 
 func (t memoryLineageTool) Definition() ToolDefinition {

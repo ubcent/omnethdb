@@ -28,6 +28,12 @@ Recommended order if you are getting oriented:
 Purpose:
 Source of truth for product and system semantics.
 
+### Post-V1 Advisory Contracts
+
+- [ADVISORY_CURATION_APIS.md](/Users/dmitrybondarchuk/Projects/my/omnethdb/docs/ADVISORY_CURATION_APIS.md)
+Purpose:
+Defines the advisory contract for curator-facing synthesis and promotion review APIs in post-`v1` follow-up work.
+
 ### Spec Mapping
 
 - [SPEC_MAP_V1.md](/Users/dmitrybondarchuk/Projects/my/omnethdb/docs/SPEC_MAP_V1.md)
@@ -78,6 +84,7 @@ Capture release-blocking traceability, repeatable acceptance execution, recorded
 - [SPRINT_PLAN_M6.md](/Users/dmitrybondarchuk/Projects/my/omnethdb/docs/SPRINT_PLAN_M6.md)
 - [SPRINT_PLAN_M7.md](/Users/dmitrybondarchuk/Projects/my/omnethdb/docs/SPRINT_PLAN_M7.md)
 - [SPRINT_PLAN_M8.md](/Users/dmitrybondarchuk/Projects/my/omnethdb/docs/SPRINT_PLAN_M8.md)
+- [SPRINT_PLAN_M9.md](/Users/dmitrybondarchuk/Projects/my/omnethdb/docs/SPRINT_PLAN_M9.md)
 
 Purpose:
 Translate each milestone into scope, workstreams, execution order, risks, and definition of done.
@@ -101,6 +108,7 @@ Reusable template for execution-ready tickets.
 - [docs/tickets/m6/README.md](/Users/dmitrybondarchuk/Projects/my/omnethdb/docs/tickets/m6/README.md)
 - [docs/tickets/m7/README.md](/Users/dmitrybondarchuk/Projects/my/omnethdb/docs/tickets/m7/README.md)
 - [docs/tickets/m8/README.md](/Users/dmitrybondarchuk/Projects/my/omnethdb/docs/tickets/m8/README.md)
+- [docs/tickets/m9/README.md](/Users/dmitrybondarchuk/Projects/my/omnethdb/docs/tickets/m9/README.md)
 
 Purpose:
 Contain execution-ready tickets grouped by milestone.
@@ -132,4 +140,4 @@ If you are doing release validation:
 
 The planning, implementation, and release-closure stack for `v1` is complete.
 
-Post-`v1` follow-up planning now starts in [SPRINT_PLAN_M8.md](/Users/dmitrybondarchuk/Projects/my/omnethdb/docs/SPRINT_PLAN_M8.md), focused on memory quality, memory curation control, and embedding-assisted hygiene.
+Post-`v1` follow-up planning now starts in [SPRINT_PLAN_M8.md](/Users/dmitrybondarchuk/Projects/my/omnethdb/docs/SPRINT_PLAN_M8.md), focused on memory quality, memory curation control, and embedding-assisted hygiene, and continues in [SPRINT_PLAN_M9.md](/Users/dmitrybondarchuk/Projects/my/omnethdb/docs/SPRINT_PLAN_M9.md), focused on explicit curator-review workflows for synthesis and promotion suggestions.

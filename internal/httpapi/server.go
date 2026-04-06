@@ -35,6 +35,8 @@ func NewHandler(store *omnethdb.Store, cfg *omnethdb.RuntimeConfig) http.Handler
 	mux.HandleFunc("/v1/candidates", s.handleCandidates)
 	mux.HandleFunc("/v1/diagnostics/quality", s.handleQualityDiagnostics)
 	mux.HandleFunc("/v1/diagnostics/quality/cleanup-plan", s.handleQualityCleanupPlan)
+	mux.HandleFunc("/v1/diagnostics/quality/synthesis-candidates", s.handleSynthesisCandidates)
+	mux.HandleFunc("/v1/diagnostics/quality/promotion-suggestions", s.handlePromotionSuggestions)
 	mux.HandleFunc("/v1/memories/list", s.handleListMemories)
 	mux.HandleFunc("/v1/memories/remember-batch", s.handleRememberBatch)
 	mux.HandleFunc("/v1/memories/forget-batch", s.handleForgetBatch)
@@ -288,6 +290,140 @@ func (s *Server) handleQualityCleanupPlan(w http.ResponseWriter, r *http.Request
 	writeJSON(w, http.StatusOK, result)
 }
 
+func (s *Server) handleSynthesisCandidates(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
+	spaceID := strings.TrimSpace(r.URL.Query().Get("space_id"))
+	if spaceID == "" {
+		writeError(w, http.StatusBadRequest, "space_id is required")
+		return
+	}
+	s.ensureEmbedderForSpace(spaceID)
+	req := omnethdb.SynthesisCandidatesRequest{SpaceID: spaceID}
+	if raw := strings.TrimSpace(r.URL.Query().Get("top_k_per_memory")); raw != "" {
+		value, err := strconv.Atoi(raw)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "invalid top_k_per_memory")
+			return
+		}
+		req.TopKPerMemory = value
+	}
+	if raw := strings.TrimSpace(r.URL.Query().Get("max_candidates")); raw != "" {
+		value, err := strconv.Atoi(raw)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "invalid max_candidates")
+			return
+		}
+		req.MaxCandidates = value
+	}
+	if raw := strings.TrimSpace(r.URL.Query().Get("min_cluster_size")); raw != "" {
+		value, err := strconv.Atoi(raw)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "invalid min_cluster_size")
+			return
+		}
+		req.MinClusterSize = value
+	}
+	if raw := strings.TrimSpace(r.URL.Query().Get("min_pair_score")); raw != "" {
+		value, err := strconv.ParseFloat(raw, 32)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "invalid min_pair_score")
+			return
+		}
+		req.MinPairScore = float32(value)
+	}
+	req.IncludeSuperseded = parseBoolQuery(r, "include_superseded")
+	req.IncludeForgotten = parseBoolQuery(r, "include_forgotten")
+
+	result, err := s.store.GetSynthesisCandidates(req)
+	if err != nil {
+		writeStoreError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, result)
+}
+
+func (s *Server) handlePromotionSuggestions(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
+	spaceID := strings.TrimSpace(r.URL.Query().Get("space_id"))
+	if spaceID == "" {
+		writeError(w, http.StatusBadRequest, "space_id is required")
+		return
+	}
+	s.ensureEmbedderForSpace(spaceID)
+	req := omnethdb.PromotionSuggestionsRequest{SpaceID: spaceID}
+	if raw := strings.TrimSpace(r.URL.Query().Get("top_k_per_memory")); raw != "" {
+		value, err := strconv.Atoi(raw)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "invalid top_k_per_memory")
+			return
+		}
+		req.TopKPerMemory = value
+	}
+	if raw := strings.TrimSpace(r.URL.Query().Get("max_suggestions")); raw != "" {
+		value, err := strconv.Atoi(raw)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "invalid max_suggestions")
+			return
+		}
+		req.MaxSuggestions = value
+	}
+	if raw := strings.TrimSpace(r.URL.Query().Get("min_observation_count")); raw != "" {
+		value, err := strconv.Atoi(raw)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "invalid min_observation_count")
+			return
+		}
+		req.MinObservationCount = value
+	}
+	if raw := strings.TrimSpace(r.URL.Query().Get("min_distinct_actors")); raw != "" {
+		value, err := strconv.Atoi(raw)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "invalid min_distinct_actors")
+			return
+		}
+		req.MinDistinctActors = value
+	}
+	if raw := strings.TrimSpace(r.URL.Query().Get("min_distinct_windows")); raw != "" {
+		value, err := strconv.Atoi(raw)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "invalid min_distinct_windows")
+			return
+		}
+		req.MinDistinctWindows = value
+	}
+	if raw := strings.TrimSpace(r.URL.Query().Get("min_cumulative_score")); raw != "" {
+		value, err := strconv.ParseFloat(raw, 32)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "invalid min_cumulative_score")
+			return
+		}
+		req.MinCumulativeScore = float32(value)
+	}
+	if raw := strings.TrimSpace(r.URL.Query().Get("min_pair_score")); raw != "" {
+		value, err := strconv.ParseFloat(raw, 32)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "invalid min_pair_score")
+			return
+		}
+		req.MinPairScore = float32(value)
+	}
+	req.IncludeSuperseded = parseBoolQuery(r, "include_superseded")
+	req.IncludeForgotten = parseBoolQuery(r, "include_forgotten")
+
+	result, err := s.store.GetPromotionSuggestions(req)
+	if err != nil {
+		writeStoreError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, result)
+}
+
 func (s *Server) handleForgetBatch(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
@@ -372,6 +508,19 @@ func (s *Server) handleExport(w http.ResponseWriter, r *http.Request) {
 		writeText(w, http.StatusOK, out)
 	default:
 		writeError(w, http.StatusBadRequest, "invalid format")
+	}
+}
+
+func parseBoolQuery(r *http.Request, key string) bool {
+	raw := strings.TrimSpace(r.URL.Query().Get(key))
+	if raw == "" {
+		return false
+	}
+	switch strings.ToLower(raw) {
+	case "1", "true", "yes", "on":
+		return true
+	default:
+		return false
 	}
 }
 
@@ -968,6 +1117,19 @@ var inspectorTemplate = template.Must(template.New("inspector").Parse(`<!doctype
         <article class="panel">
           <div class="panel-header">
             <div>
+              <h2>Curation Review</h2>
+              <span>Synthesis-review clusters and promotion-review suggestions over the live episodic corpus</span>
+            </div>
+            <span class="status" id="curation-status">Loading…</span>
+          </div>
+          <div class="body">
+            <div class="cards" id="curation-list"></div>
+          </div>
+        </article>
+
+        <article class="panel">
+          <div class="panel-header">
+            <div>
               <h2>Live View</h2>
               <span>Client-side filtered live corpus</span>
             </div>
@@ -1042,6 +1204,8 @@ var inspectorTemplate = template.Must(template.New("inspector").Parse(`<!doctype
     const qualityStatus = document.getElementById("quality-status");
     const cleanupListEl = document.getElementById("cleanup-list");
     const cleanupStatus = document.getElementById("cleanup-status");
+    const curationListEl = document.getElementById("curation-list");
+    const curationStatus = document.getElementById("curation-status");
     const diffListEl = document.getElementById("diff-list");
     const diffStatus = document.getElementById("diff-status");
     const liveListEl = document.getElementById("live-list");
@@ -1282,6 +1446,54 @@ var inspectorTemplate = template.Must(template.New("inspector").Parse(`<!doctype
       cleanupStatus.textContent = "Ready";
     }
 
+    function renderCurationReview(synthesis, promotion) {
+      const synthesisCandidates = synthesis?.candidates ?? [];
+      const promotionSuggestions = promotion?.suggestions ?? [];
+      const cards = [];
+
+      if (synthesisCandidates.length > 0) {
+        cards.push(...synthesisCandidates.map((candidate, index) =>
+          '<article class="memory-card">' +
+            '<header><h3>Synthesis review ' + escapeHTML(index + 1) + '</h3><span class="chip">' + escapeHTML(candidate.suggested_action ?? "review_only") + '</span></header>' +
+            '<div class="memory-meta">' +
+              '<span class="chip">cluster ' + escapeHTML(candidate.cluster_size ?? 0) + '</span>' +
+              '<span class="chip">actors ' + escapeHTML(candidate.distinct_actors ?? 0) + '</span>' +
+              '<span class="chip">mean similarity ' + Number(candidate.mean_similarity ?? 0).toFixed(2) + '</span>' +
+            '</div>' +
+            '<p>' + (candidate.reason_codes ?? []).map(code => '<span class="chip">' + escapeHTML(code) + '</span>').join("") + '</p>' +
+            '<div class="memory-meta">' + (candidate.members ?? []).map(member =>
+              '<span class="chip">' + escapeHTML(member.memory_id + ' @ ' + member.actor_id) + '</span>'
+            ).join("") + '</div>' +
+          '</article>'
+        ));
+      }
+
+      if (promotionSuggestions.length > 0) {
+        cards.push(...promotionSuggestions.map((suggestion, index) =>
+          '<article class="memory-card">' +
+            '<header><h3>Promotion review ' + escapeHTML(index + 1) + '</h3><span class="chip">' + escapeHTML(suggestion.suggested_action ?? "review_only") + '</span></header>' +
+            '<div class="memory-meta">' +
+              '<span class="chip">memory ' + escapeHTML(suggestion.memory_id ?? "") + '</span>' +
+              '<span class="chip">observations ' + escapeHTML(suggestion.observation_count ?? 0) + '</span>' +
+              '<span class="chip">actors ' + escapeHTML(suggestion.distinct_actors ?? 0) + '</span>' +
+              '<span class="chip">support ' + Number(suggestion.cumulative_score ?? 0).toFixed(2) + '</span>' +
+            '</div>' +
+            '<p>' + escapeHTML(suggestion.explanation ?? "") + '</p>' +
+            '<div class="memory-meta">' + (suggestion.reason_codes ?? []).map(code =>
+              '<span class="chip">' + escapeHTML(code) + '</span>'
+            ).join("") + '</div>' +
+          '</article>'
+        ));
+      }
+
+      if (cards.length === 0) {
+        cards.push('<article class="memory-card"><p>No synthesis-review clusters or promotion-review suggestions crossed the current advisory thresholds.</p></article>');
+      }
+
+      curationListEl.innerHTML = cards.join("");
+      curationStatus.textContent = "Ready";
+    }
+
     function renderLiveList(snapshot) {
       const live = (snapshot?.live_memories ?? []).filter(mem => selectedKind === "all" || kindLabel(mem.kind) === selectedKind);
       if (live.length === 0) {
@@ -1371,6 +1583,7 @@ var inspectorTemplate = template.Must(template.New("inspector").Parse(`<!doctype
       signalsStatus.textContent = "Loading…";
       qualityStatus.textContent = "Loading…";
       cleanupStatus.textContent = "Loading…";
+      curationStatus.textContent = "Loading…";
       diffStatus.textContent = (sinceInput.value.trim() || (beforeFileInput.value.trim() && afterFileInput.value.trim())) ? "Loading…" : "Idle";
       graphStatus.textContent = "Loading…";
       summaryStatus.className = "status";
@@ -1378,24 +1591,29 @@ var inspectorTemplate = template.Must(template.New("inspector").Parse(`<!doctype
       signalsStatus.className = "status";
       qualityStatus.className = "status";
       cleanupStatus.className = "status";
+      curationStatus.className = "status";
       graphStatus.className = "status";
       try {
         const base = "/v1/export?space_id=" + encodeURIComponent(spaceID);
         const qualityURL = "/v1/diagnostics/quality?space_id=" + encodeURIComponent(spaceID);
         const cleanupURL = "/v1/diagnostics/quality/cleanup-plan?space_id=" + encodeURIComponent(spaceID);
+        const synthesisURL = "/v1/diagnostics/quality/synthesis-candidates?space_id=" + encodeURIComponent(spaceID);
+        const promotionURL = "/v1/diagnostics/quality/promotion-suggestions?space_id=" + encodeURIComponent(spaceID);
         let diffURL = null;
         if (beforeFileInput.value.trim() && afterFileInput.value.trim()) {
           diffURL = "/v1/export/compare?before_file=" + encodeURIComponent(beforeFileInput.value.trim()) + "&after_file=" + encodeURIComponent(afterFileInput.value.trim());
         } else if (sinceInput.value.trim()) {
           diffURL = "/v1/export/diff?space_id=" + encodeURIComponent(spaceID) + "&since=" + encodeURIComponent(sinceInput.value.trim());
         }
-        const [summary, snapshot, graph, diff, quality, cleanupPlan] = await Promise.all([
+        const [summary, snapshot, graph, diff, quality, cleanupPlan, synthesis, promotion] = await Promise.all([
           fetchText(base + "&format=summary-md"),
           fetchJSON(base),
           fetchText(base + "&format=graph-mermaid"),
           diffURL ? fetchJSON(diffURL) : Promise.resolve(null),
           fetchJSON(qualityURL),
           fetchJSON(cleanupURL),
+          fetchJSON(synthesisURL),
+          fetchJSON(promotionURL),
         ]);
 
         summaryEl.textContent = summary;
@@ -1409,6 +1627,7 @@ var inspectorTemplate = template.Must(template.New("inspector").Parse(`<!doctype
         renderSignals(snapshot);
         renderQuality(quality);
         renderCleanupPlan(cleanupPlan);
+        renderCurationReview(synthesis, promotion);
         renderLiveList(snapshot);
         renderDiff(diff);
         await renderGraph(graph);
@@ -1419,6 +1638,7 @@ var inspectorTemplate = template.Must(template.New("inspector").Parse(`<!doctype
         signalsStatus.textContent = "Load failed";
         qualityStatus.textContent = "Load failed";
         cleanupStatus.textContent = "Load failed";
+        curationStatus.textContent = "Load failed";
         diffStatus.textContent = "Load failed";
         graphStatus.textContent = "Load failed";
         summaryStatus.className = "status error";
@@ -1426,6 +1646,7 @@ var inspectorTemplate = template.Must(template.New("inspector").Parse(`<!doctype
         signalsStatus.className = "status error";
         qualityStatus.className = "status error";
         cleanupStatus.className = "status error";
+        curationStatus.className = "status error";
         diffStatus.className = "status error";
         graphStatus.className = "status error";
         summaryEl.textContent = message;
@@ -1433,6 +1654,7 @@ var inspectorTemplate = template.Must(template.New("inspector").Parse(`<!doctype
         signalsEl.innerHTML = '<article class="signal bad"><p>' + escapeHTML(message) + '</p></article>';
         qualityListEl.innerHTML = '<article class="memory-card"><p>' + escapeHTML(message) + '</p></article>';
         cleanupListEl.innerHTML = '<article class="memory-card"><p>' + escapeHTML(message) + '</p></article>';
+        curationListEl.innerHTML = '<article class="memory-card"><p>' + escapeHTML(message) + '</p></article>';
         diffListEl.innerHTML = '<article class="memory-card"><p>' + escapeHTML(message) + '</p></article>';
         liveListEl.innerHTML = '<article class="memory-card"><p>' + escapeHTML(message) + '</p></article>';
         graphEl.innerHTML = "";

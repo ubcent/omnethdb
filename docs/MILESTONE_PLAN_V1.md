@@ -375,3 +375,20 @@ Recommended next artifacts:
 1. sprint plan for Milestone 1
 2. ticket templates with traceability fields
 3. definition of done per task type: `spec`, `impl`, `verify`
+
+## Post-V1 Follow-Up
+
+The milestone plan above defines the complete `v1` delivery sequence through release closure.
+
+Follow-up planning after `v1` release now continues in dedicated post-`v1` sprint plans rather than extending the release-critical backlog retroactively.
+
+Current post-`v1` waves:
+
+1. [SPRINT_PLAN_M8.md](/Users/dmitrybondarchuk/Projects/my/omnethdb/docs/SPRINT_PLAN_M8.md) for memory quality control, embedding-assisted hygiene, and safer config reconciliation
+2. [SPRINT_PLAN_M9.md](/Users/dmitrybondarchuk/Projects/my/omnethdb/docs/SPRINT_PLAN_M9.md) for explicit curator-review workflows around synthesis and promotion suggestions
+
+This separation is intentional:
+
+- `v1` remains a closed, auditable release plan
+- post-`v1` work can evolve without rewriting release-critical traceability
+- new curation and quality-control surfaces stay tied back to the architecture and sprint docs stack

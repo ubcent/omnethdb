@@ -56,6 +56,10 @@ func main() {
 		err = runCandidates(os.Args[2:])
 	case "quality":
 		err = runQuality(os.Args[2:])
+	case "synthesis-candidates":
+		err = runSynthesisCandidates(os.Args[2:])
+	case "promotion-suggestions":
+		err = runPromotionSuggestions(os.Args[2:])
 	case "quality-plan":
 		err = runQualityPlan(os.Args[2:])
 	case "quality-report":
@@ -493,6 +497,82 @@ func runQuality(args []string) error {
 	default:
 		return fmt.Errorf("unsupported --format %q", *format)
 	}
+}
+
+func runSynthesisCandidates(args []string) error {
+	fs := flag.NewFlagSet("synthesis-candidates", flag.ContinueOnError)
+	workspace := fs.String("workspace", defaultWorkspace, "workspace root")
+	spaceID := fs.String("space", "", "space id")
+	topK := fs.Int("top-k-per-memory", 5, "top similar live episodic memories to inspect per seed memory")
+	maxCandidates := fs.Int("max-candidates", 8, "maximum synthesis-review clusters to return")
+	minClusterSize := fs.Int("min-cluster-size", 2, "minimum episodic memories per synthesis-review cluster")
+	minPairScore := fs.Float64("min-pair-score", 0.90, "minimum cosine similarity for cluster edges")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	if strings.TrimSpace(*spaceID) == "" {
+		return errors.New("synthesis-candidates requires --space")
+	}
+
+	store, _, cfg, err := openCLIStore(*workspace)
+	if err != nil {
+		return err
+	}
+	defer store.Close()
+	ensureEmbedderForSpace(store, cfg, *spaceID)
+
+	result, err := store.GetSynthesisCandidates(omnethdb.SynthesisCandidatesRequest{
+		SpaceID:        *spaceID,
+		TopKPerMemory:  *topK,
+		MaxCandidates:  *maxCandidates,
+		MinClusterSize: *minClusterSize,
+		MinPairScore:   float32(*minPairScore),
+	})
+	if err != nil {
+		return err
+	}
+	return printJSON(result)
+}
+
+func runPromotionSuggestions(args []string) error {
+	fs := flag.NewFlagSet("promotion-suggestions", flag.ContinueOnError)
+	workspace := fs.String("workspace", defaultWorkspace, "workspace root")
+	spaceID := fs.String("space", "", "space id")
+	topK := fs.Int("top-k-per-memory", 5, "top similar live episodic memories to inspect per seed memory")
+	maxSuggestions := fs.Int("max-suggestions", 8, "maximum promotion-review suggestions to return")
+	minObservationCount := fs.Int("min-observation-count", 2, "minimum similar episodic observations to support a promotion review")
+	minDistinctActors := fs.Int("min-distinct-actors", 1, "minimum distinct actors supporting the claim")
+	minDistinctWindows := fs.Int("min-distinct-windows", 1, "minimum distinct UTC date windows supporting the claim")
+	minCumulativeScore := fs.Float64("min-cumulative-score", 1.8, "minimum cumulative advisory support score")
+	minPairScore := fs.Float64("min-pair-score", 0.90, "minimum cosine similarity for support edges")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	if strings.TrimSpace(*spaceID) == "" {
+		return errors.New("promotion-suggestions requires --space")
+	}
+
+	store, _, cfg, err := openCLIStore(*workspace)
+	if err != nil {
+		return err
+	}
+	defer store.Close()
+	ensureEmbedderForSpace(store, cfg, *spaceID)
+
+	result, err := store.GetPromotionSuggestions(omnethdb.PromotionSuggestionsRequest{
+		SpaceID:             *spaceID,
+		TopKPerMemory:       *topK,
+		MaxSuggestions:      *maxSuggestions,
+		MinObservationCount: *minObservationCount,
+		MinDistinctActors:   *minDistinctActors,
+		MinDistinctWindows:  *minDistinctWindows,
+		MinCumulativeScore:  float32(*minCumulativeScore),
+		MinPairScore:        float32(*minPairScore),
+	})
+	if err != nil {
+		return err
+	}
+	return printJSON(result)
 }
 
 func runQualityPlan(args []string) error {
@@ -1081,6 +1161,8 @@ Commands:
   related   traverse explicit relations
   candidates raw cosine candidate search
   quality   inspect duplicate and update diagnostics for a space
+  synthesis-candidates inspect episodic clusters worth curator synthesis review
+  promotion-suggestions inspect episodic memories worth curator promotion review
   quality-plan build an advisory duplicate cleanup plan for a space
   quality-report render diagnostics and cleanup plan together as markdown
   audit     inspect audit history
@@ -1104,6 +1186,8 @@ Examples:
   omnethdb recall --workspace . --spaces repo:company/app --query pagination
   omnethdb candidates --workspace . --space repo:company/app --content "pagination"
   omnethdb quality --workspace . --space repo:company/app
+  omnethdb synthesis-candidates --workspace . --space repo:company/app
+  omnethdb promotion-suggestions --workspace . --space repo:company/app
   omnethdb quality --workspace . --space repo:company/app --format markdown
   omnethdb quality-plan --workspace . --space repo:company/app
   omnethdb quality-plan --workspace . --space repo:company/app --format markdown
