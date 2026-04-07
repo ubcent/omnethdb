@@ -216,9 +216,12 @@ The current MCP surface is intentionally narrow and maps directly to the existin
 - `memory_remember`
 - `memory_recall`
 - `memory_profile`
+- `memory_profile_compact`
 - `memory_lineage`
 - `memory_related`
 - `memory_export_summary`
+
+For token-sensitive clients, prefer `memory_profile_compact` for agent initialization. It preserves the layered static and episodic shape while returning short previews instead of full memory bodies.
 
 Example MCP client config:
 

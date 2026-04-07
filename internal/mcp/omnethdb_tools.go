@@ -409,7 +409,7 @@ func (t memoryRecallTool) Call(_ context.Context, args map[string]any) (ToolResu
 func (t memoryProfileTool) Definition() ToolDefinition {
 	return ToolDefinition{
 		Name:        "memory_profile",
-		Description: "Build a layered profile for agent initialization with static and episodic slices kept separate.",
+		Description: "Build a layered profile with full memory content for agent initialization; use memory_profile_compact when token limits matter.",
 		InputSchema: objectSchema(
 			requiredArrayProp("space_ids", "string", "Requested spaces."),
 			requiredProp("query", "string", "Profile query."),
@@ -455,7 +455,7 @@ func (t memoryProfileTool) Call(_ context.Context, args map[string]any) (ToolRes
 func (t memoryProfileCompactTool) Definition() ToolDefinition {
 	return ToolDefinition{
 		Name:        "memory_profile_compact",
-		Description: "Build a compact layered profile for agent initialization using short previews instead of full memory content.",
+		Description: "Build a compact layered profile for agent initialization using short previews instead of full memory content; preferred for token-sensitive MCP clients.",
 		InputSchema: objectSchema(
 			requiredArrayProp("space_ids", "string", "Requested spaces."),
 			requiredProp("query", "string", "Profile query."),

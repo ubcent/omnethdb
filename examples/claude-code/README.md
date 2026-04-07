@@ -38,7 +38,7 @@ repo:company/app
 
 At task start:
 
-- call `memory_profile` or `memory_recall`
+- call `memory_profile_compact` first, or `memory_recall` for a narrow task-specific lookup
 - read current durable knowledge before exploring the repo
 
 During work:

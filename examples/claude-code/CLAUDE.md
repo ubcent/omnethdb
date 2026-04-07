@@ -9,9 +9,10 @@ Your goal is to preserve the smallest set of high-value memories that improves f
 
 Before doing substantial work:
 
-1. Call `memory_profile` for the repository space.
-2. If the profile is sparse, call `memory_recall` with a task-specific query.
-3. Treat recalled memories as working hypotheses until confirmed against the codebase.
+1. Call `memory_profile_compact` for the repository space.
+2. If you need full memory bodies for a small result set, call `memory_profile` with tight `static_top_k` and `episodic_top_k` limits.
+3. If the profile is sparse, call `memory_recall` with a task-specific query.
+4. Treat recalled memories as working hypotheses until confirmed against the codebase.
 
 After finishing meaningful work:
 
