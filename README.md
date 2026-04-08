@@ -54,9 +54,7 @@ If you are new to the repo:
 
 ## Install
 
-The intended operator path is release binaries, not `go run`.
-
-Once release archives are published, unpack the matching archive for your platform and put these binaries on your `PATH`:
+Install the published binaries and put these executables on your `PATH`:
 
 - `omnethdb`
 - `omnethdb-mcp`
@@ -74,8 +72,6 @@ curl -fsSL https://raw.githubusercontent.com/ubcent/omnethdb/main/scripts/instal
 ```
 
 The script installs to `~/.local/bin` by default. Override with `INSTALL_DIR=/your/bin/dir`.
-
-For local development inside this repo, `go run ./cmd/omnethdb ...` and `go run ./cmd/omnethdb-mcp ...` still work.
 
 ## Five-Minute Quickstart
 

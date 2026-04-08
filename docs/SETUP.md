@@ -14,9 +14,6 @@ The persisted store also lives in the filesystem.
 
 That means backup and restore are operationally simple.
 
-The intended operator path is installed release binaries.
-If you are working inside this repository, the equivalent `go run ./cmd/omnethdb ...` commands are still valid for development.
-
 ## Minimal Config
 
 ```toml

@@ -14,12 +14,10 @@ An OmnethDB workspace is just a normal directory with two important things:
 That is it.
 No hidden daemon state. No mystery control plane.
 
-The intended operator path is installed release binaries:
+Install the published binaries and use these executables:
 
 - `omnethdb`
 - `omnethdb-mcp`
-
-If you are developing inside this repository, `go run ./cmd/omnethdb ...` and `go run ./cmd/omnethdb-mcp ...` are still fine.
 
 ## Step 1: Inspect The CLI
 
