@@ -3,6 +3,7 @@
 [![CI](https://github.com/ubcent/omnethdb/actions/workflows/ci.yml/badge.svg)](https://github.com/ubcent/omnethdb/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/ubcent/omnethdb)](https://github.com/ubcent/omnethdb/releases)
 [![Go Version](https://img.shields.io/badge/go-1.24%2B-00ADD8)](https://go.dev/)
+[![License](https://img.shields.io/github/license/ubcent/omnethdb)](LICENSE)
 
 ```text
    ____                       __  __    ____  ____
