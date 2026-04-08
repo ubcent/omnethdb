@@ -1,5 +1,15 @@
 # OmnethDB
 
+```text
+   ____                        __  __    ____  ____
+  / __ \____ ___  ____  ___  / /_/ /_  / __ \/ __ )
+ / / / / __ `__ \/ __ \/ _ \/ __/ __ \/ / / / __  |
+/ /_/ / / / / / / / / /  __/ /_/ / / / /_/ / /_/ /
+\____/_/ /_/ /_/_/ /_/\___/\__/_/ /_/_____/_____/
+
+versioned memory for autonomous agents
+```
+
 OmnethDB is an embedded, versioned memory database for autonomous agents.
 
 It is not a vague "AI memory layer", not a flat vector store, and not a chat-history cache.
