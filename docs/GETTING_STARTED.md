@@ -14,10 +14,17 @@ An OmnethDB workspace is just a normal directory with two important things:
 That is it.
 No hidden daemon state. No mystery control plane.
 
+The intended operator path is installed release binaries:
+
+- `omnethdb`
+- `omnethdb-mcp`
+
+If you are developing inside this repository, `go run ./cmd/omnethdb ...` and `go run ./cmd/omnethdb-mcp ...` are still fine.
+
 ## Step 1: Inspect The CLI
 
 ```bash
-go run ./cmd/omnethdb help
+omnethdb help
 ```
 
 That shows the supported commands and is the fastest way to see the current operator surface.
@@ -52,7 +59,7 @@ What this means:
 ## Step 3: Initialize The Space
 
 ```bash
-go run ./cmd/omnethdb init \
+omnethdb init \
   --workspace . \
   --space repo:company/app
 ```
@@ -70,7 +77,7 @@ Important:
 Write a durable project fact:
 
 ```bash
-go run ./cmd/omnethdb remember \
+omnethdb remember \
   --workspace . \
   --space repo:company/app \
   --kind static \
@@ -94,7 +101,7 @@ Bad first memories:
 ## Step 5: Query Live Knowledge
 
 ```bash
-go run ./cmd/omnethdb recall \
+omnethdb recall \
   --workspace . \
   --spaces repo:company/app \
   --query pagination \
@@ -106,7 +113,7 @@ go run ./cmd/omnethdb recall \
 If you want a layered context package for agent startup, use `profile` instead:
 
 ```bash
-go run ./cmd/omnethdb profile \
+omnethdb profile \
   --workspace . \
   --spaces repo:company/app \
   --query pagination \
@@ -122,7 +129,7 @@ Update the lineage explicitly.
 First inspect the lineage:
 
 ```bash
-go run ./cmd/omnethdb lineage \
+omnethdb lineage \
   --workspace . \
   --root <root-memory-id>
 ```
@@ -130,7 +137,7 @@ go run ./cmd/omnethdb lineage \
 Then write the new version:
 
 ```bash
-go run ./cmd/omnethdb remember \
+omnethdb remember \
   --workspace . \
   --space repo:company/app \
   --kind static \
@@ -147,7 +154,7 @@ That makes the new memory the latest truth in the lineage.
 Audit trail:
 
 ```bash
-go run ./cmd/omnethdb audit \
+omnethdb audit \
   --workspace . \
   --space repo:company/app
 ```
@@ -155,7 +162,7 @@ go run ./cmd/omnethdb audit \
 Explicit relations:
 
 ```bash
-go run ./cmd/omnethdb related \
+omnethdb related \
   --workspace . \
   --id <memory-id> \
   --relation extends \
@@ -165,7 +172,7 @@ go run ./cmd/omnethdb related \
 Raw candidate search for curation:
 
 ```bash
-go run ./cmd/omnethdb candidates \
+omnethdb candidates \
   --workspace . \
   --space repo:company/app \
   --content "pagination" \
@@ -177,7 +184,7 @@ go run ./cmd/omnethdb candidates \
 Before writing a candidate memory, you can ask OmnethDB whether it looks like a duplicate or likely update:
 
 ```bash
-go run ./cmd/omnethdb lint-remember \
+omnethdb lint-remember \
   --workspace . \
   --space repo:company/app \
   --kind static \
@@ -191,7 +198,7 @@ This is a good habit for agent-driven memory writing.
 ### MCP
 
 ```bash
-go run ./cmd/omnethdb-mcp --workspace .
+omnethdb-mcp --workspace .
 ```
 
 See [examples/claude-code/README.md](../examples/claude-code/README.md) for a Claude Code setup.
@@ -199,13 +206,13 @@ See [examples/claude-code/README.md](../examples/claude-code/README.md) for a Cl
 ### HTTP
 
 ```bash
-go run ./cmd/omnethdb serve --workspace . --addr :8080
+omnethdb serve --workspace . --addr :8080
 ```
 
 ### gRPC
 
 ```bash
-go run ./cmd/omnethdb serve-grpc --workspace . --addr :9090
+omnethdb serve-grpc --workspace . --addr :9090
 ```
 
 ## Common Mistakes

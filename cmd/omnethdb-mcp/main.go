@@ -17,12 +17,31 @@ const (
 	defaultDimension = 256
 )
 
+var (
+	version = "dev"
+	commit  = "none"
+	date    = "unknown"
+)
+
 func main() {
+	if len(os.Args) == 2 {
+		switch os.Args[1] {
+		case "version", "-v", "--version":
+			printVersion()
+			return
+		}
+	}
+
 	fs := flag.NewFlagSet("omnethdb-mcp", flag.ExitOnError)
 	workspace := fs.String("workspace", defaultWorkspace, "workspace root")
+	versionFlag := fs.Bool("version", false, "print build version information")
 	if err := fs.Parse(os.Args[1:]); err != nil {
 		fmt.Fprintln(os.Stderr, "error:", err)
 		os.Exit(1)
+	}
+	if *versionFlag {
+		printVersion()
+		return
 	}
 
 	open := func() (*omnethdb.Store, *omnethdb.RuntimeConfig, error) {
@@ -45,9 +64,13 @@ func main() {
 		return store, cfg, nil
 	}
 
-	server := mcp.NewServer("omnethdb-mcp", "0.1.0", mcp.NewOmnethDBTools(open))
+	server := mcp.NewServer("omnethdb-mcp", version, mcp.NewOmnethDBTools(open))
 	if err := server.Serve(context.Background(), os.Stdin, os.Stdout); err != nil {
 		fmt.Fprintln(os.Stderr, "error:", err)
 		os.Exit(1)
 	}
+}
+
+func printVersion() {
+	fmt.Printf("omnethdb-mcp version=%s commit=%s date=%s\n", version, commit, date)
 }

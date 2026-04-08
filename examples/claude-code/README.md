@@ -21,8 +21,10 @@ It is intentionally opinionated:
 1. Start OmnethDB MCP against a real workspace:
 
 ```bash
-go run ./cmd/omnethdb-mcp --workspace /absolute/path/to/omnethdb-workspace
+omnethdb-mcp --workspace /absolute/path/to/omnethdb-workspace
 ```
+
+For local development inside this repository, `go run ./cmd/omnethdb-mcp --workspace ...` is still fine. For normal installation and distribution, prefer the release binary.
 
 2. Register the MCP server in your Claude Code MCP configuration using `mcp-server.json` as a template.
 

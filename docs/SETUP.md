@@ -14,6 +14,9 @@ The persisted store also lives in the filesystem.
 
 That means backup and restore are operationally simple.
 
+The intended operator path is installed release binaries.
+If you are working inside this repository, the equivalent `go run ./cmd/omnethdb ...` commands are still valid for development.
+
 ## Minimal Config
 
 ```toml
@@ -140,13 +143,13 @@ If you do not override a field, the default remains in effect.
 2. Run:
 
 ```bash
-go run ./cmd/omnethdb init --workspace . --space repo:company/app
+omnethdb init --workspace . --space repo:company/app
 ```
 
 3. Inspect persisted config:
 
 ```bash
-go run ./cmd/omnethdb space --workspace . --space repo:company/app
+omnethdb space --workspace . --space repo:company/app
 ```
 
 ## Validating Config Changes
@@ -156,19 +159,19 @@ If you changed `config.toml` after a space already exists, use the config reconc
 Validate:
 
 ```bash
-go run ./cmd/omnethdb space validate-config --workspace . --space repo:company/app
+omnethdb space validate-config --workspace . --space repo:company/app
 ```
 
 Show the diff:
 
 ```bash
-go run ./cmd/omnethdb space diff-config --workspace . --space repo:company/app
+omnethdb space diff-config --workspace . --space repo:company/app
 ```
 
 Apply the new config when valid:
 
 ```bash
-go run ./cmd/omnethdb space apply-config --workspace . --space repo:company/app
+omnethdb space apply-config --workspace . --space repo:company/app
 ```
 
 This is the safe path for operator-visible policy and tuning changes.

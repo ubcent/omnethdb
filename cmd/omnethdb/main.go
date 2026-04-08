@@ -26,7 +26,21 @@ const (
 	defaultDimension = 256
 )
 
+var (
+	version = "dev"
+	commit  = "none"
+	date    = "unknown"
+)
+
 func main() {
+	if len(os.Args) == 2 {
+		switch os.Args[1] {
+		case "version", "-v", "--version":
+			printVersion()
+			return
+		}
+	}
+
 	if len(os.Args) < 2 {
 		usage()
 		os.Exit(2)
@@ -80,6 +94,9 @@ func main() {
 		err = runServe(os.Args[2:])
 	case "serve-grpc":
 		err = runServeGRPC(os.Args[2:])
+	case "version", "-v", "--version":
+		printVersion()
+		return
 	case "help", "-h", "--help":
 		usage()
 		return
@@ -1173,6 +1190,7 @@ Commands:
   config    print workspace layout and loaded config
   serve     run the HTTP API server
   serve-grpc run the gRPC API server
+  version   print build version information
 
 Space subcommands:
   space validate-config --workspace . --space repo:company/app
@@ -1198,7 +1216,12 @@ Examples:
   omnethdb space diff-config --workspace . --space repo:company/app
   omnethdb serve --workspace . --addr :8080
   omnethdb serve-grpc --workspace . --addr :9090
+  omnethdb version
 `)
+}
+
+func printVersion() {
+	fmt.Printf("omnethdb version=%s commit=%s date=%s\n", version, commit, date)
 }
 
 func renderQualityPlanMarkdown(plan omnethdb.QualityCleanupPlanResult) string {

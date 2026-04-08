@@ -49,7 +49,33 @@ If you are new to the repo:
 1. Read [docs/GETTING_STARTED.md](docs/GETTING_STARTED.md)
 2. Read [docs/CONCEPTS.md](docs/CONCEPTS.md)
 3. Use [docs/SETUP.md](docs/SETUP.md) to configure a real workspace
-4. Use [docs/INDEX.md](docs/INDEX.md) when you need the full planning and architecture stack
+4. Use [docs/RELEASING.md](docs/RELEASING.md) if you want to ship binaries and publish releases
+5. Use [docs/INDEX.md](docs/INDEX.md) when you need the full planning and architecture stack
+
+## Install
+
+The intended operator path is release binaries, not `go run`.
+
+Once release archives are published, unpack the matching archive for your platform and put these binaries on your `PATH`:
+
+- `omnethdb`
+- `omnethdb-mcp`
+
+Quick install:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/ubcent/omnethdb/main/scripts/install.sh | sh
+```
+
+Install a specific version:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/ubcent/omnethdb/main/scripts/install.sh | VERSION=v0.1.0 sh
+```
+
+The script installs to `~/.local/bin` by default. Override with `INSTALL_DIR=/your/bin/dir`.
+
+For local development inside this repo, `go run ./cmd/omnethdb ...` and `go run ./cmd/omnethdb-mcp ...` still work.
 
 ## Five-Minute Quickstart
 
@@ -58,7 +84,7 @@ See the full walkthrough in [docs/GETTING_STARTED.md](docs/GETTING_STARTED.md).
 Ask the CLI what it can do:
 
 ```bash
-go run ./cmd/omnethdb help
+omnethdb help
 ```
 
 Create a workspace config:
@@ -80,7 +106,7 @@ dimensions = 256
 Bootstrap the space:
 
 ```bash
-go run ./cmd/omnethdb init \
+omnethdb init \
   --workspace . \
   --space repo:company/app
 ```
@@ -88,7 +114,7 @@ go run ./cmd/omnethdb init \
 Write a stable fact:
 
 ```bash
-go run ./cmd/omnethdb remember \
+omnethdb remember \
   --workspace . \
   --space repo:company/app \
   --kind static \
@@ -100,7 +126,7 @@ go run ./cmd/omnethdb remember \
 Recall current live knowledge:
 
 ```bash
-go run ./cmd/omnethdb recall \
+omnethdb recall \
   --workspace . \
   --spaces repo:company/app \
   --query pagination \
@@ -163,7 +189,7 @@ The main operator entrypoint is `cmd/omnethdb`.
 OmnethDB ships with a local stdio MCP server:
 
 ```bash
-go run ./cmd/omnethdb-mcp --workspace .
+omnethdb-mcp --workspace .
 ```
 
 A Claude Code starter pack lives in [examples/claude-code/README.md](examples/claude-code/README.md).
@@ -173,7 +199,7 @@ A Claude Code starter pack lives in [examples/claude-code/README.md](examples/cl
 Run:
 
 ```bash
-go run ./cmd/omnethdb serve --workspace . --addr :8080
+omnethdb serve --workspace . --addr :8080
 ```
 
 ### gRPC API
@@ -181,7 +207,7 @@ go run ./cmd/omnethdb serve --workspace . --addr :8080
 Run:
 
 ```bash
-go run ./cmd/omnethdb serve-grpc --workspace . --addr :9090
+omnethdb serve-grpc --workspace . --addr :9090
 ```
 
 Proto contract:
@@ -214,6 +240,7 @@ Most important source-of-truth docs:
 - [docs/UAT_MAP_V1.md](docs/UAT_MAP_V1.md)
 - [docs/BACKLOG_V1.md](docs/BACKLOG_V1.md)
 - [docs/MILESTONE_PLAN_V1.md](docs/MILESTONE_PLAN_V1.md)
+- [docs/RELEASING.md](docs/RELEASING.md)
 
 ## Working Standard
 

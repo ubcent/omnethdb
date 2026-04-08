@@ -1,0 +1,64 @@
+version: 2
+
+project_name: omnethdb
+
+before:
+  hooks:
+    - go test ./...
+
+builds:
+  - id: omnethdb
+    main: ./cmd/omnethdb
+    binary: omnethdb
+    env:
+      - CGO_ENABLED=0
+    ldflags:
+      - -s -w -X main.version={{ .Version }} -X main.commit={{ .Commit }} -X main.date={{ .Date }}
+    goos:
+      - darwin
+      - linux
+      - windows
+    goarch:
+      - amd64
+      - arm64
+
+  - id: omnethdb-mcp
+    main: ./cmd/omnethdb-mcp
+    binary: omnethdb-mcp
+    env:
+      - CGO_ENABLED=0
+    ldflags:
+      - -s -w -X main.version={{ .Version }} -X main.commit={{ .Commit }} -X main.date={{ .Date }}
+    goos:
+      - darwin
+      - linux
+      - windows
+    goarch:
+      - amd64
+      - arm64
+
+archives:
+  - id: binaries
+    ids:
+      - omnethdb
+      - omnethdb-mcp
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    formats:
+      - tar.gz
+    format_overrides:
+      - goos: windows
+        formats:
+          - zip
+    files:
+      - README.md
+      - scripts/install.sh
+      - examples/claude-code/README.md
+      - examples/claude-code/mcp-server.json
+      - examples/claude-code/CLAUDE.md
+
+checksum:
+  name_template: checksums.txt
+
+changelog:
+  sort: asc
+  use: git
