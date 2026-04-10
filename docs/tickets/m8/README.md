@@ -23,9 +23,9 @@ These tickets form the first post-`v1` memory-quality and memory-curation-contro
 
 Current state:
 
-- Milestone 8 is proposed.
-- `M8-001` is todo.
-- `M8-002` is todo.
-- `M8-003` is todo.
-- `M8-004` is todo.
-- `M8-005` is todo.
+- Milestone 8 is complete.
+- `M8-001` is done.
+- `M8-002` is done.
+- `M8-003` is done.
+- `M8-004` is done.
+- `M8-005` is done.

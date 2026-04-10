@@ -72,6 +72,10 @@ Expected outputs:
 - `PromotionSuggestions` advisory contract
 - stable reason-code taxonomy and evidence expectations
 
+Current status:
+
+- `M9-001` specification is complete in [ADVISORY_CURATION_APIS.md](/Users/dmitrybondarchuk/Projects/my/omnethdb/docs/ADVISORY_CURATION_APIS.md)
+
 ### Workstream B. Advisory Curation Implementation
 
 Objective:
@@ -199,6 +203,11 @@ Milestone 9 exits when the team has:
 1. specified advisory curation contracts for synthesis and promotion review,
 2. implemented explicit cold-path APIs for those review surfaces,
 3. verified that the new surfaces do not alter retrieval, lineage, or promotion semantics.
+
+Current status:
+
+- Milestone 9 is complete
+- `M9-001`, `M9-002`, and `M9-003` are complete
 
 ## What Comes Next
 

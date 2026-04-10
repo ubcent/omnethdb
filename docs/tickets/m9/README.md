@@ -44,6 +44,13 @@ This queue should preserve the architecture's core discipline:
 - retrieval remains predictable and separate from inspection
 - embeddings assist curation rather than infer truth
 
+## Current State
+
+- Milestone 9 is complete.
+- `M9-001` is done.
+- `M9-002` is done.
+- `M9-003` is done.
+
 ## Exit Condition
 
 Milestone 9 is complete when OmnethDB can surface synthesis-review and promotion-review candidates explicitly, and the verification layer demonstrates those signals do not create hidden write or retrieval behavior.

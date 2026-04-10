@@ -59,6 +59,18 @@ Explains workspace layout, config, writer policy, embedder identity, and safe co
 Purpose:
 Defines the advisory contract for curator-facing synthesis and promotion review APIs in post-`v1` follow-up work.
 
+- [ADVISORY_EVIDENCE_CONTRACTS.md](./ADVISORY_EVIDENCE_CONTRACTS.md)
+Purpose:
+Defines the shared evidence contract for curator-facing advisory and diagnostic surfaces in post-`v1` follow-up work.
+
+- [INSPECTOR_EVIDENCE_GUIDELINES.md](./INSPECTOR_EVIDENCE_GUIDELINES.md)
+Purpose:
+Defines the behavioral guidelines for exposing supporting evidence in inspector diagnostics without weakening semantic boundaries.
+
+- [M10_BENCHMARK_GUIDELINES.md](./M10_BENCHMARK_GUIDELINES.md)
+Purpose:
+Defines the benchmark methodology for evidence-centered memory quality and curator-review evaluation in post-`v1` follow-up work.
+
 ### Spec Mapping
 
 - [SPEC_MAP_V1.md](./SPEC_MAP_V1.md)
@@ -110,6 +122,7 @@ Capture release-blocking traceability, repeatable acceptance execution, recorded
 - [SPRINT_PLAN_M7.md](./SPRINT_PLAN_M7.md)
 - [SPRINT_PLAN_M8.md](./SPRINT_PLAN_M8.md)
 - [SPRINT_PLAN_M9.md](./SPRINT_PLAN_M9.md)
+- [SPRINT_PLAN_M10.md](./SPRINT_PLAN_M10.md)
 
 Purpose:
 Translate each milestone into scope, workstreams, execution order, risks, and definition of done.
@@ -134,6 +147,7 @@ Reusable template for execution-ready tickets.
 - [docs/tickets/m7/README.md](./tickets/m7/README.md)
 - [docs/tickets/m8/README.md](./tickets/m8/README.md)
 - [docs/tickets/m9/README.md](./tickets/m9/README.md)
+- [docs/tickets/m10/README.md](./tickets/m10/README.md)
 
 Purpose:
 Contain execution-ready tickets grouped by milestone.
@@ -165,4 +179,4 @@ If you are doing release validation:
 
 The planning, implementation, and release-closure stack for `v1` is complete.
 
-Post-`v1` follow-up planning now starts in [SPRINT_PLAN_M8.md](./SPRINT_PLAN_M8.md), focused on memory quality, memory curation control, and embedding-assisted hygiene, and continues in [SPRINT_PLAN_M9.md](./SPRINT_PLAN_M9.md), focused on explicit curator-review workflows for synthesis and promotion suggestions.
+Post-`v1` follow-up planning now starts in [SPRINT_PLAN_M8.md](./SPRINT_PLAN_M8.md), focused on memory quality, memory curation control, and embedding-assisted hygiene, continues in [SPRINT_PLAN_M9.md](./SPRINT_PLAN_M9.md), focused on explicit curator-review workflows for synthesis and promotion suggestions, and then extends into [SPRINT_PLAN_M10.md](./SPRINT_PLAN_M10.md), focused on evidence-centered curation and evaluation.

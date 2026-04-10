@@ -72,6 +72,11 @@ Expected outputs:
 - similarity search against live corpus for duplicate and update hints
 - warning-oriented integration into `remember` and MCP-facing flows
 
+Current status:
+
+- `M8-001` specification is complete through the shared lint contract
+- `M8-002` implementation is complete in store, CLI, and MCP surfaces
+
 ### Workstream B. Quality Diagnostics And Evaluation
 
 Objective:
@@ -88,6 +93,11 @@ Expected outputs:
 - duplicate/update metrics
 - inspector panels for duplicate clusters and candidate update targets
 
+Current status:
+
+- `M8-003` verification is complete through quality and downgrade test coverage
+- `M8-004` implementation is complete in diagnostics and inspector-facing HTTP surfaces
+
 ### Workstream C. Operator Config Reconciliation
 
 Objective:
@@ -102,6 +112,10 @@ Expected outputs:
 - config diff command
 - config validation command
 - config apply command for persisted spaces
+
+Current status:
+
+- `M8-005` implementation is complete in the CLI operator workflow
 
 ## Suggested Execution Order
 
@@ -200,6 +214,11 @@ Milestone 8 exits when the team has:
 2. added measurable embedding-quality evaluation,
 3. exposed useful quality diagnostics in the inspector,
 4. removed destructive config-reconciliation workflows for normal operator changes.
+
+Current status:
+
+- Milestone 8 is complete
+- `M8-001`, `M8-002`, `M8-003`, `M8-004`, and `M8-005` are complete
 
 ## What Comes Next
 
